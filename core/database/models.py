@@ -22,3 +22,26 @@ class Mission(SQLModel, table=True):
     
     user_id: Optional[int] = Field(default=None, foreign_key="user.id")
     user: Optional[User] = Relationship(back_populates="missions")
+
+class Transaction(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    date: datetime = Field(default_factory=datetime.utcnow)
+    type: str  # "INCOME" or "EXPENSE"
+    category: str # "Sale", "Ads", "COGS", "Subscription", "Other"
+    description: str
+    amount: float
+    
+    user_id: Optional[int] = Field(default=None, foreign_key="user.id")
+
+class Product(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    title: str = Field(index=True)
+    description: str
+    keywords: Optional[str] = None
+    price: float = Field(default=0.0)
+    stock: int = Field(default=0)
+    sku: Optional[str] = None
+    category: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    
+    user_id: Optional[int] = Field(default=None, foreign_key="user.id")

@@ -1,7 +1,10 @@
 from agents.base_agent import BaseAgent
 from core.llm_client import llm_client
 import pandas as pd
-from typing import Dict, List
+from typing import Dict, List, Any
+from core.database.engine import get_session
+from core.database.models import Product
+from sqlmodel import select
 
 class ProductAgent(BaseAgent):
     def __init__(self):
@@ -46,10 +49,89 @@ class ProductAgent(BaseAgent):
         
         response = llm_client.generate_content(prompt)
         
-        import re
+        return self._parse_llm_response(response)
+
+    def generate_mass_upload_csv(self, products_data: List[Dict[str, str]]) -> str:
+        """
+        Creates a CSV string compatible with general e-commerce uploads.
+        """
+        if not products_data:
+            return ""
+            
+        df = pd.DataFrame(products_data)
         
-        # Robust Regex Parsing
-        # Pattern looks for TÍTULO:, DESCRIÇÃO:, KEYWORDS: (case insensitive) followed by content until the next tag or end of string
+        # Create a DataFrame structured for Shopee Mass Upload (Simplified)
+        # Create a DataFrame structured for Shopee Mass Upload (Simplified)
+        df_export = pd.DataFrame(index=df.index)
+        
+        # Category ID usually required but we leave blank for user
+        df_export['Nome do Produto'] = df['title'] if 'title' in df.columns else ''
+        df_export['Descrição'] = df['description'] if 'description' in df.columns else ''
+        df_export['Preço'] = df['price'] if 'price' in df.columns else 0.00
+        df_export['Estoque'] = df['stock'] if 'stock' in df.columns else 100
+        df_export['Peso (kg)'] = df['weight'] if 'weight' in df.columns else 0.5
+        df_export['Capa (Nome Arquivo)'] = "" # Placeholder for manual image ref
+        df_export['Imagem 1'] = ""
+        df_export['Imagem 2'] = ""
+        df_export['Imagem 3'] = ""
+        df_export['Imagem 4'] = ""
+        df_export['Imagem 5'] = ""
+        
+    def extract_product_info(self, image_bytes: bytes) -> str:
+        """
+        Step 1: Just extract raw info from the image.
+        """
+        vision_prompt = """
+        Analise esta imagem de um produto/rótulo. 
+        Extraia de forma organizada:
+        1. NOME DO PRODUTO (e Variante, ex: Chocolate, Sabor Laranja)
+        2. MARCA
+        3. PESO/VOLUME (ex: 900g, 60 caps)
+        4. BREVE DESCRIÇÃO TÉCNICA (Ingredientes principais ou função).
+        
+        Seja preciso. Se não conseguir ler, informe 'Não foi possível ler as informações'.
+        """
+        extracted_info = llm_client.generate_with_image(vision_prompt, image_bytes)
+        return extracted_info
+
+    def generate_from_extracted_info(self, info_text: str) -> Dict[str, Any]:
+        """
+        Step 2: Take (possibly edited) info and generate full listing with search.
+        """
+        enrich_prompt = f"""
+        Com base nestas informações de um produto:
+        {info_text}
+        
+        PESQUISE na internet os detalhes atuais, benefícios Reais e como este produto se posiciona no mercado.
+        
+        Depois, siga as REGRAS DE OURO e a ESTRUTURA de copy abaixo para criar o anúncio perfeito:
+        
+        ESTILO DE ESCRITA (SCIENTIFIC CONVERSION):
+        - Objetivo: Converter vendas passando autoridade e confiança.
+        - Visual: USE EMOJIS (🧠, 💪, 😴) para quebrar o texto.
+        
+        ESTRUTURA OBRIGATÓRIA:
+        1. Intro: O que é e para que serve.
+        2. Principais Benefícios (Bullets com Emojis). 
+        3. Diferenciais Nutri Active: (Fatos: Validade, Nota Fiscal, Lacre).
+        
+        REGRAS DE OURO:
+        1. Título SEO: 50-60 caracteres, Keywords no início.
+        2. Compliance: NUNCA prometa cura. Use "auxilia", "suplementa".
+        
+        Retorne ESTRITAMENTE neste formato:
+        TÍTULO: [O título aqui]
+        DESCRIÇÃO: [O texto completo da descrição aqui]
+        KEYWORDS: [Lista de 15 palavras-chave separadas por vírgula]
+        """
+        
+        # Step 2: Use default provider (OpenRouter) for generation
+        response = llm_client.generate_content(enrich_prompt, use_search=False)
+        return self._parse_llm_response(response)
+
+    def _parse_llm_response(self, response: str) -> Dict[str, str]:
+        """Helper to parse the TÍTULO/DESCRIÇÃO/KEYWORDS format."""
+        import re
         patterns = {
             'title': r'(?:TÍTULO|TITULO):\s*(.*?)(?=(?:DESCRIÇÃO|DESCRICAO|KEYWORDS|KEY WORDS)|$)',
             'description': r'(?:DESCRIÇÃO|DESCRICAO):\s*(.*?)(?=(?:TÍTULO|TITULO|KEYWORDS|KEY WORDS)|$)',
@@ -71,7 +153,6 @@ class ProductAgent(BaseAgent):
         match_keys = re.search(patterns['keywords'], response, flags)
         if match_keys: keywords = match_keys.group(1).strip()
         
-        # Fallback if regex fails completely (e.g. model output plain text)
         if not match_title and not match_desc:
              lines = response.split('\n')
              if len(lines) > 0: title = lines[0]
@@ -79,31 +160,101 @@ class ProductAgent(BaseAgent):
                 
         return {"title": title, "description": description, "keywords": keywords}
 
-    def generate_mass_upload_csv(self, products_data: List[Dict[str, str]]) -> str:
-        """
-        Creates a CSV string compatible with general e-commerce uploads.
-        """
-        if not products_data:
-            return ""
+    def save_product(self, data: Dict[str, Any], user_id: int) -> Dict[str, Any]:
+        """Saves a product to the database."""
+        try:
+            session = next(get_session())
+            new_product = Product(
+                title=data.get('title', 'Sem Título'),
+                description=data.get('description', ''),
+                keywords=data.get('keywords', ''),
+                price=data.get('price', 0.0),
+                stock=data.get('stock', 0),
+                sku=data.get('sku'),
+                category=data.get('category'),
+                user_id=user_id
+            )
+            session.add(new_product)
+            session.commit()
+            session.refresh(new_product)
+            return {"success": True, "product_id": new_product.id}
+        except Exception as e:
+            return {"success": False, "message": str(e)}
+
+    def get_all_products(self, user_id: int) -> List[Product]:
+        """Retrieves all products for a user."""
+        session = next(get_session())
+        statement = select(Product).where(Product.user_id == user_id)
+        return session.exec(statement).all()
+
+    def update_product(self, product_id: int, updates: Dict[str, Any]) -> Dict[str, Any]:
+        """Updates an existing product."""
+        try:
+            session = next(get_session())
+            product = session.get(Product, product_id)
+            if not product:
+                return {"success": False, "message": "Produto não encontrado"}
             
-        df = pd.DataFrame(products_data)
-        
-        # Create a DataFrame structured for Shopee Mass Upload (Simplified)
-        df_export = pd.DataFrame()
-        
-        # Category ID usually required but we leave blank for user
-        df_export['Nome do Produto'] = df.get('title', '')
-        df_export['Descrição'] = df.get('description', '')
-        df_export['Preço'] = df.get('price', 0.00)
-        df_export['Estoque'] = df.get('stock', 100)
-        df_export['Peso (kg)'] = df.get('weight', 0.5)
-        df_export['Capa (Nome Arquivo)'] = "" # Placeholder for manual image ref
-        df_export['Imagem 1'] = ""
-        df_export['Imagem 2'] = ""
-        df_export['Imagem 3'] = ""
-        df_export['Imagem 4'] = ""
-        df_export['Imagem 5'] = ""
-        
+            for key, value in updates.items():
+                if hasattr(product, key):
+                    setattr(product, key, value)
+            
+            session.add(product)
+            session.commit()
+            return {"success": True}
+        except Exception as e:
+            return {"success": False, "message": str(e)}
+
+    def delete_product(self, product_id: int) -> Dict[str, Any]:
+        """Deletes a product."""
+        try:
+            session = next(get_session())
+            product = session.get(Product, product_id)
+            if product:
+                session.delete(product)
+                session.commit()
+            return {"success": True}
+        except Exception as e:
+            return {"success": False, "message": str(e)}
+
+    def process_csv_import(self, file, user_id: int) -> Dict[str, Any]:
+        """Imports products from a Shopee-like CSV."""
+        try:
+            df = pd.read_csv(file)
+            
+            # Flexible mapping for Shopee columns
+            mapping = {
+                'Nome do Produto': 'title',
+                'Descrição': 'description',
+                'Preço': 'price',
+                'Estoque': 'stock',
+                'Código SKU': 'sku',
+                'Category ID': 'category'
+            }
+            
+            imported_count = 0
+            session = next(get_session())
+            
+            for _, row in df.iterrows():
+                product_data = {}
+                for shopee_col, model_attr in mapping.items():
+                    if shopee_col in df.columns:
+                        val = row[shopee_col]
+                        # Type conversion
+                        if model_attr == 'price': val = float(str(val).replace('R$', '').replace(',', '.').strip() or 0)
+                        elif model_attr == 'stock': val = int(val or 0)
+                        product_data[model_attr] = val
+                
+                if 'title' in product_data:
+                    new_prod = Product(**product_data, user_id=user_id)
+                    session.add(new_prod)
+                    imported_count += 1
+            
+            session.commit()
+            return {"success": True, "count": imported_count}
+        except Exception as e:
+            return {"success": False, "message": str(e)}
+
     def run(self, *args, **kwargs):
         """
         Placeholder execution method.

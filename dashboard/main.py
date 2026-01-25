@@ -14,6 +14,21 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
+# Custom CSS to make Primary Button Green (Success Color)
+st.markdown("""
+<style>
+div.stButton > button:first-child[kind="primary"] {
+    background-color: #4CAF50;
+    border-color: #4CAF50;
+    color: white;
+}
+div.stButton > button:first-child[kind="primary"]:hover {
+    background-color: #45a049;
+    border-color: #45a049;
+}
+</style>
+""", unsafe_allow_html=True)
+
 # Initialize DB on first run
 if "db_initialized" not in st.session_state:
     create_db_and_tables()
@@ -37,11 +52,34 @@ def main():
         st.divider()
         st.write("### 🏆 Conquistas Recentes")
         st.write("🛠️ Fundador (Badge)")
+        
+        st.divider()
+        # Dev Tools
+        with st.expander("🛠️ Admin Tools"):
+            if st.button("🔄 Recarregar Sistema"):
+                import importlib
+                import sys
+                import agents.finance_agent
+                import agents.product_agent
+                import agents.ads_agent
+                
+                # Force reload of agent modules
+                importlib.reload(sys.modules['agents.finance_agent'])
+                importlib.reload(sys.modules['agents.product_agent'])
+                if 'agents.ads_agent' in sys.modules:
+                    importlib.reload(sys.modules['agents.ads_agent'])
+                
+                # Clear Streamlit Cache
+                st.cache_data.clear()
+                st.cache_resource.clear()
+                
+                st.toast("Sistema recarregado com Sucesso!", icon="✅")
+                st.rerun()
     
     # Main Content
     st.title("🚀 Shopee Growth Quest")
     
-    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["🏠 Resumo", "💰 Financeiro", "📢 Anúncios", "🤝 Atendimento", "🏭 Fábrica de Produtos", "⚙️ Configurações"])
+    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["🏠 Resumo", "💰 Financeiro", "📢 Anúncios", "🤝 Atendimento", "📦 Produtos", "⚙️ Configurações"])
     
     with tab1:
         st.header("Missões do Dia")
@@ -58,20 +96,181 @@ def main():
         st.header("Guardião Financeiro")
         finance_agent = FinanceAgent()
         
-        # Mock Data Input for MVP
-        st.subheader("📊 Analisar Vendas")
-        uploaded_file = st.file_uploader("Suba seu relatório de vendas (CSV/Excel)", type=["csv", "xlsx"])
         
-        if uploaded_file:
-            # Placeholder for file processing
-            st.success("Arquivo recebido! (Processamento em breve)")
+        # Real Analysis - Always Run (Top Priority)
+        with st.container():
+            analysis = finance_agent.analyze_health(user.id)
+            stats = analysis["stats"]
             
-        # Demo Button
-        if st.button("Executar Análise Demo"):
-            mock_data = [{'date': '2023-10-01', 'amount': 150.0}, {'date': '2023-10-02', 'amount': 200.0}]
-            result = finance_agent.run(mock_data)
-            st.code(result["stats"])
-            st.success(f"🤖 **Conselho do Guardião**: {result['advice']}")
+            # KPIs
+            k1, k2, k3 = st.columns(3)
+            k1.metric("Faturamento", f"R$ {stats['total_revenue']:.2f}")
+            k2.metric("Custos", f"R$ {stats['total_expenses']:.2f}")
+            k3.metric("Lucro Líquido", f"R$ {stats['net_profit']:.2f}", delta=f"{stats['margin']:.1f}% Margem")
+            
+            # Prepare Data
+            all_transactions = [{"Data": t.date, "Desc": t.description, "Valor": t.amount, "Tipo": t.type} for t in stats["raw_data"]]
+            df_all = pd.DataFrame(all_transactions)
+            
+            if not df_all.empty:
+                # 1. Chart: Monthly Comparison (Revenue vs Expenses)
+                st.subheader("📉 Comparativo Financeiro")
+                df_all['Mês'] = pd.to_datetime(df_all['Data']).dt.strftime('%Y-%m') # Sortable format
+                
+                # Group by Month and Type
+                chart_data = df_all.groupby(['Mês', 'Tipo'])['Valor'].sum().unstack().fillna(0)
+                
+                # Colors: INCOME=Green, EXPENSE=Red
+                st.bar_chart(chart_data, color=["#ff4b4b", "#4bceac"] if 'EXPENSE' in chart_data.columns else ["#4bceac"])
+
+                # 2. Last 10 Transactions (Always Open)
+                st.subheader("⏱️ Últimas 10 Transações")
+                # Sort by Date Descending
+                df_sorted = df_all.sort_values(by="Data", ascending=False)
+                st.dataframe(
+                    df_sorted.head(10).style.format({"Valor": "R$ {:.2f}"}), 
+                    width="stretch",
+                    hide_index=True
+                )
+
+                # 3. Full History & Management (Closed Dropdown)
+                with st.expander("📝 Gerenciar Histórico (Editar/Excluir)"):
+                    # We need the ID to update/delete
+                    all_transactions_with_id = [{"ID": t.id, "Data": t.date, "Desc": t.description, "Valor": t.amount, "Tipo": t.type, "Categoria": t.category} for t in stats["raw_data"]]
+                    df_edit = pd.DataFrame(all_transactions_with_id)
+                    
+                    # Sort by Date Descending for display
+                    df_edit = df_edit.sort_values(by="Data", ascending=False)
+                    
+                    # Editable Dataframe
+                    edited_df = st.data_editor(
+                        df_edit,
+                        column_config={
+                            "ID": st.column_config.NumberColumn(disabled=True),
+                            "Data": st.column_config.DateColumn("Data"),
+                            "Valor": st.column_config.NumberColumn("Valor", format="R$ %.2f"),
+                            "Tipo": st.column_config.SelectboxColumn("Tipo", options=["INCOME", "EXPENSE"]),
+                            "Categoria": st.column_config.SelectboxColumn("Categoria", options=["Sale", "Ads", "Custo Produto", "Assinatura", "Outros"]),
+                        },
+                        hide_index=True,
+                        num_rows="dynamic", # Allows adding/deleting rows
+                        key="transaction_editor",
+                        width="stretch"
+                    )
+                    
+                    # Control Buttons
+                    b1, b2, b3, b4 = st.columns(4)
+                    
+                    # 1. Save
+                    if b1.button("Salvar 💾", type="primary", width="stretch"):
+                        # Identify Changes
+                        # 1. Deletions (Rows present in original but missing in edited)
+                        original_ids = set(df_edit["ID"])
+                        edited_ids = set(edited_df["ID"].dropna()) # dropna for new rows which might have NaN ID
+                        
+                        ids_to_delete = original_ids - edited_ids
+                        
+                        changes_log = []
+                        
+                        # Process Deletions
+                        for txn_id in ids_to_delete:
+                            res = finance_agent.delete_transaction(int(txn_id))
+                            if res["success"]:
+                                changes_log.append(f"❌ ID {txn_id}: Deletado")
+                        
+                        # Process Updates (Rows with same ID but different content)
+                        # We iterate over edited_df where ID exists
+                        for index, row in edited_df.iterrows():
+                            txn_id = row.get("ID")
+                            
+                            if pd.notna(txn_id):
+                                # Check if changed
+                                original_row = df_edit[df_edit["ID"] == txn_id].iloc[0]
+                                
+                                # Compare fields
+                                updates = {}
+                                if row["Desc"] != original_row["Desc"]: updates["description"] = row["Desc"]
+                                if row["Valor"] != original_row["Valor"]: updates["amount"] = float(row["Valor"])
+                                if row["Tipo"] != original_row["Tipo"]: updates["type"] = row["Tipo"]
+                                if row["Categoria"] != original_row["Categoria"]: updates["category"] = row["Categoria"]
+                                # Date comparison (careful with types)
+                                if pd.to_datetime(row["Data"]) != pd.to_datetime(original_row["Data"]): updates["date"] = pd.to_datetime(row["Data"])
+
+                                if updates:
+                                    res = finance_agent.update_transaction(int(txn_id), updates)
+                                    if res["success"]:
+                                        changes_log.append(f"✏️ ID {txn_id}: Atualizado")
+
+                        if changes_log:
+                            st.success(f"Alterações salvas:\n" + "\n".join(changes_log))
+                            st.rerun()
+                        else:
+                            st.info("Nenhuma alteração detectada.")
+
+                    # 2. Undo
+                    if b2.button("Desfazer ↩️", width="stretch"):
+                        st.toast("Dica: Use **Ctrl+Z** (ou Cmd+Z) dentro da tabela para desfazer!", icon="💡")
+
+                    # 3. Redo
+                    if b3.button("Refazer ↪️", width="stretch"):
+                        st.toast("Dica: Use **Ctrl+Shift+Z** dentro da tabela para refazer!", icon="💡")
+                    
+                    # 4. Restore (Discard Changes)
+                    if b4.button("Restaurar 🔄", width="stretch"):
+                        st.rerun()
+
+                # Deep Analysis Button
+                st.divider()
+                if st.button("🧠 Análise Profunda do Guardião", width="stretch"):
+                    with st.spinner("O Guardião está analisando cada centavo do seu cofre..."):
+                        report = finance_agent.generate_deep_analysis(user.id)
+                        
+                        with st.expander("📄 Relatório Estratégico do CFO", expanded=True):
+                            st.markdown(report)
+            
+        st.divider()
+
+        col_in, col_out = st.columns(2)
+        
+        # Income Section (Upload)
+        with col_in:
+            st.subheader("📥 Receitas (Upload)")
+            st.caption("Relatório Shopee")
+            uploaded_file = st.file_uploader("Arquivo", type=["csv", "xlsx"], label_visibility="collapsed")
+            
+            if uploaded_file:
+                if st.button("Processar Arquivo 📥"):
+                    with st.spinner("Lendo..."):
+                        result = finance_agent.process_upload(uploaded_file, user.id)
+                        if result["success"]:
+                            st.success("Sucesso!")
+                            st.rerun()
+                        else:
+                            st.error(result["message"])
+
+        # Expense Section (Manual)
+        with col_out:
+            st.subheader("💸 Despesas (Manual)")
+            with st.form("expense_form"):
+                d_date = st.date_input("Data")
+                d_desc = st.text_input("Descrição", placeholder="Ex: Assinatura, Google Ads")
+                d_val = st.number_input("Valor (R$)", min_value=0.01, step=10.0)
+                d_cat = st.selectbox("Categoria", ["Ads", "Custo Produto", "Assinatura", "Outros"])
+                
+                if st.form_submit_button("Registrar Gasto 📤"):
+                    res = finance_agent.add_transaction(
+                        date=d_date,
+                        description=d_desc,
+                        amount=d_val,
+                        category=d_cat,
+                        type="EXPENSE",
+                        user_id=user.id
+                    )
+                    if res["success"]:
+                        st.success("Registrado!")
+                        st.rerun()
+                    else:
+                        st.error(res["message"])
 
     with tab3:
         st.header("📢 Mestre dos Anúncios")
@@ -155,103 +354,217 @@ def main():
 
 
     with tab5:
-        st.header("🏭 Fábrica de Produtos (Nutri Active)")
+        st.header("📦 Gestão de Produtos")
         from agents.product_agent import ProductAgent
         if 'product_agent' not in st.session_state:
             st.session_state.product_agent = ProductAgent()
         
-        # Initialize Batch Session State
-        if 'batch_products' not in st.session_state:
-            st.session_state.batch_products = []
-        
-        st.info("💡 **Dica sobre Imagens**: Como a API é restrita, a estratégia é: Gere os textos aqui, baixe o CSV, suba na Shopee e depois **arraste as imagens do seu computador** direto para cada produto criado. É o método mais rápido!")
-        
-        col_p1, col_p2 = st.tabs(["📝 Criar Unitário", "📦 Lote (CSV)"])
-        
-        with col_p1:
-            st.subheader("Criar Anúncio Perfeito")
-            p_name = st.text_input("Produto", placeholder="Ex: Creatina Monohidratada Pura")
-            p_ing = st.text_input("Ingredientes/Detalhes", placeholder="Ex: 300g, 100% Pura, Sem Sabor")
-            p_ben = st.text_area("Principais Benefícios", placeholder="Ex: Aumento de força, recuperação muscular, energia")
+        # 1. CATÁLOGO (Always visible at top)
+        with st.container(border=True):
+            st.subheader("📚 Meus Produtos")
+            products = st.session_state.product_agent.get_all_products(user.id)
             
-            c_gen, c_add = st.columns([1, 1])
-            
-            if c_gen.button("Gerar Anúncio Nutri Active (2025) ✨"):
-                if p_name and p_ben:
-                    with st.spinner("🤖 O Agente está analisando concorrência e criando copy..."):
-                        listing = st.session_state.product_agent.generate_listing(p_name, p_ben, p_ing)
-                        st.session_state.last_generated = listing # Store for review
-                        
-            # Show Result if exists
-            if 'last_generated' in st.session_state:
-                listing = st.session_state.last_generated
+            if products:
+                # KPIs for Catalog
+                c1, c2, c3 = st.columns(3)
+                total_stock = sum(p.stock for p in products)
+                total_value = sum(p.price * p.stock for p in products)
+                c1.metric("Total de Itens", len(products))
+                c2.metric("Estoque Total", total_stock)
+                c3.metric("Vlr. em Estoque", f"R$ {total_value:,.2f}")
                 
-                st.divider()
-                st.markdown("### 🕵️ Revisão do Humano")
+                # Table Data
+                df_prods = pd.DataFrame([{
+                    "ID": p.id,
+                    "Título": p.title,
+                    "Preço": p.price,
+                    "Estoque": p.stock,
+                    "SKU": p.sku or "",
+                    "Keywords": p.keywords or "",
+                    "Descrição": p.description or ""
+                } for p in products])
                 
-                c_title, c_keys = st.columns([2, 1])
-                title = c_title.text_input("Título (SEO)", value=listing['title'])
-                keywords = c_keys.text_area("Keywords (Tags)", value=listing.get('keywords', ''), height=68, help="Use isso nas Tags do produto ou no final da descrição")
+                edited_df = st.data_editor(
+                    df_prods,
+                    column_config={
+                        "ID": st.column_config.NumberColumn(disabled=True),
+                        "Título": st.column_config.TextColumn("Título", width="large"),
+                        "Preço": st.column_config.NumberColumn("Preço", format="R$ %.2f"),
+                        "Estoque": st.column_config.NumberColumn("Estoque"),
+                        "Descrição": st.column_config.TextColumn("Descrição", width="medium"),
+                    },
+                    hide_index=True,
+                    width="stretch",
+                    num_rows="dynamic",
+                    key="product_catalog_editor"
+                )
                 
-                desc = st.text_area("Descrição (Markdown)", value=listing['description'], height=400)
-                
-                # Update logic if user edits
-                st.session_state.last_generated['title'] = title
-                st.session_state.last_generated['description'] = desc
-                # Append keywords to description if desired, or keep separate. 
-                # For CSV logic, we can append them to description or ignore.
-                
-                if st.button("➕ Aprovar e Adicionar ao Lote"):
-                    # Append keywords to description for final listing if not present
-                    final_desc = desc
-                    if keywords and keywords not in desc:
-                        final_desc += f"\n\nTAGS: {keywords}"
+                if st.button("Salvar Alterações no Catálogo 💾", type="primary"):
+                    # Process Deletions
+                    original_ids = set(df_prods["ID"])
+                    edited_ids = set(edited_df["ID"].dropna())
+                    ids_to_del = original_ids - edited_ids
                     
-                    final_product = {
-                        "title": title,
-                        "description": final_desc,
-                        "keywords": keywords # Keep track
-                    }
+                    for p_id in ids_to_del:
+                        st.session_state.product_agent.delete_product(int(p_id))
                     
-                    st.session_state.batch_products.append(final_product)
-                    st.toast(f"Produto '{title}' salvo no lote! Total: {len(st.session_state.batch_products)}")
-                    del st.session_state.last_generated # Clear after adding
-
-        with col_p2:
-            st.subheader(f"Gerador em Massa ({len(st.session_state.batch_products)} produtos)")
-            
-            # Show table of added products
-            if st.session_state.batch_products:
-                df_view = pd.DataFrame(st.session_state.batch_products)
-                st.dataframe(df_view[['title']], use_container_width=True)
-                
-                if st.button("📥 Baixar CSV para Shopee"):
-                    csv = st.session_state.product_agent.generate_mass_upload_csv(st.session_state.batch_products)
-                    st.download_button(
-                        label="Clique para Download",
-                        data=csv,
-                        file_name="nutri_active_upload.csv",
-                        mime="text/csv"
-                    )
+                    # Process Updates
+                    for _, row in edited_df.iterrows():
+                        p_id = row.get("ID")
+                        if pd.notna(p_id):
+                            updates = {
+                                "title": row["Título"],
+                                "price": float(row["Preço"]),
+                                "stock": int(row["Estoque"]),
+                                "sku": row["SKU"],
+                                "keywords": row["Keywords"],
+                                "description": row["Descrição"]
+                            }
+                            st.session_state.product_agent.update_product(int(p_id), updates)
                     
-                    # MANDAMENTOS DA SHOPEE
-                    st.divider()
-                    st.success("CSV Gerado! Agora siga os 5 Mandamentos da Shopee:")
-                    
-                    m1, m2, m3 = st.columns(3)
-                    with m1:
-                        st.write("📸 **1. Fotos**")
-                        st.caption("Mínimo de **5 fotos** (Ideal: 9). A primeira com fundo branco/limpo.")
-                    with m2:
-                        st.write("🎥 **2. Vídeo**")
-                        st.caption("Tenha 1 vídeo curto (15-30s) mostrando o produto. Aumenta muito a conversão.")
-                    with m3:
-                        st.write("🏷️ **3. Preço/Estoque**")
-                        st.caption("Preencha manualmente no arquivo ou na Shopee após subir.")
-                        
-                    st.warning("⚠️ **Dica de Ouro**: Use fotos reais na sequência (segurando o pote) para passar confiança.")
+                    st.success("Catálogo Atualizado!")
+                    st.rerun()
             else:
-                st.info("O lote está vazio. Gere anúncios na aba 'Criar Unitário' e adicione aqui!")
+                st.info("Seu catálogo está vazio. Adicione produtos abaixo ou importe um CSV.")
+
+        st.divider()
+
+        # 2. ADICIONAR PRODUTOS (The core engine)
+        with st.container(border=True):
+            st.subheader("➕ Adicionar Produtos")
+            
+            method = st.radio("Método de Criação:", ["Manual (Texto)", "Imagem (Vision + IA Search) 📸"], horizontal=True)
+            
+            if method == "Manual (Texto)":
+                col_m1, col_m2 = st.columns([1, 1])
+                with col_m1:
+                    p_name = st.text_input("Nome do Produto", placeholder="Ex: Creatina Monohidratada Pura", key="manual_name")
+                    p_ing = st.text_input("Ingredientes/Detalhes", placeholder="Ex: 300g, 100% Pura", key="manual_ing")
+                with col_m2:
+                    p_ben = st.text_area("Principais Benefícios", placeholder="Ex: Aumento de força...", key="manual_ben")
+                
+                if st.button("Gerar Anúncio ✨", type="primary", key="btn_manual"):
+                    if p_name and p_ben:
+                        with st.spinner("🤖 Analisando e criando copy..."):
+                            listing = st.session_state.product_agent.generate_listing(p_name, p_ben, p_ing)
+                            st.session_state.last_generated_res = listing
+                    else:
+                        st.warning("Preencha o Nome e os Benefícios.")
+            
+            else: # Image Method
+                st.info("💡 Passo 1: Envie uma foto e a IA identificará o produto. Passo 2: Você revisa e geramos o anúncio com busca web.")
+                img_file = st.file_uploader("Upload da Imagem do Produto", type=["jpg", "jpeg", "png"])
+                
+                if img_file:
+                    st.image(img_file, width=200)
+                    if st.button("Passo 1: Extrair Informações 📸", type="primary"):
+                        with st.spinner("Lendo rótulo..."):
+                            img_bytes = img_file.getvalue()
+                            info = st.session_state.product_agent.extract_product_info(img_bytes)
+                            st.session_state.extracted_info = info
+                            if 'last_generated_res' in st.session_state: del st.session_state.last_generated_res
+
+                if 'extracted_info' in st.session_state:
+                    st.divider()
+                    st.markdown("### 📝 Informações Detectadas")
+                    st.caption("Ajuste os dados abaixo se necessário antes da pesquisa web.")
+                    edited_info = st.text_area("Dados do Produto", value=st.session_state.extracted_info, height=150)
+                    
+                    if st.button("Passo 2: Gerar Anúncio Completo (com Busca Web) 🔍", type="primary"):
+                        with st.spinner("Pesquisando na internet e criando copy..."):
+                            listing = st.session_state.product_agent.generate_from_extracted_info(edited_info)
+                            st.session_state.last_generated_res = listing
+                            # Keep extracted_info so they can refine and regenerate if needed, 
+                            # but usually we might want to clear it after saving.
+            
+            # Review and Save Area (Shared for both methods)
+            if 'last_generated_res' in st.session_state:
+                res = st.session_state.last_generated_res
+                st.divider()
+                st.markdown("### 🕵️ Revisão e Ajustes Finais")
+                
+                edit_title = st.text_input("Título SEO", value=res['title'])
+                edit_keys = st.text_area("Keywords (Tags)", value=res.get('keywords', ''))
+                edit_desc = st.text_area("Descrição", value=res['description'], height=300)
+                
+                col1, col2 = st.columns(2)
+                p_price = col1.number_input("Preço de Venda (R$)", min_value=0.0, step=1.0, value=0.0, key="price_input")
+                p_stock = col2.number_input("Estoque Inicial", min_value=0, step=1, value=100, key="stock_input")
+                
+                if st.button("💾 Confirmar e Salvar no Catálogo", type="primary", width="stretch"):
+                    final_data = {
+                        "title": edit_title,
+                        "description": edit_desc,
+                        "keywords": edit_keys,
+                        "price": p_price,
+                        "stock": p_stock
+                    }
+                    save_res = st.session_state.product_agent.save_product(final_data, user.id)
+                    if save_res["success"]:
+                        st.success(f"Produto '{edit_title}' salvo com sucesso!")
+                        del st.session_state.last_generated_res
+                        st.rerun()
+                    else:
+                        st.error(f"Erro ao salvar: {save_res['message']}")
+
+        st.divider()
+
+        # 3. IMPORTAR & EXPORTAR (In Expanders to keep page clean)
+        col_ie1, col_ie2 = st.columns(2)
+        
+        with col_ie1:
+            with st.expander("📥 Importar da Shopee (CSV)"):
+                st.caption("Suba o arquivo CSV exportado da Shopee para cadastrar em massa.")
+                up_file = st.file_uploader("Selecione o CSV", type=["csv"], key="import_csv")
+                if up_file:
+                    if st.button("Processar Importação 📥", key="btn_import"):
+                        with st.spinner("Importando produtos..."):
+                            imp_res = st.session_state.product_agent.process_csv_import(up_file, user.id)
+                            if imp_res["success"]:
+                                st.success(f"Sucesso! {imp_res['count']} produtos importados.")
+                                st.rerun()
+                            else:
+                                st.error(imp_res["message"])
+
+        with col_ie2:
+            with st.expander("📤 Exportar para Shopee (CSV)"):
+                st.caption("Selecione os produtos do catálogo para gerar o arquivo de upload.")
+                products_to_export = st.session_state.product_agent.get_all_products(user.id)
+                
+                if products_to_export:
+                    df_exp = pd.DataFrame([{
+                        "Sel": False,
+                        "ID": p.id,
+                        "Título": p.title
+                    } for p in products_to_export])
+                    
+                    edited_exp = st.data_editor(df_exp, hide_index=True, width="stretch", key="export_editor")
+                    selected_ids = edited_exp[edited_exp["Sel"] == True]["ID"].tolist()
+                    
+                    if st.button("Gerar CSV 📤", key="btn_export"):
+                        if selected_ids:
+                            selected_prods = [p for p in products_to_export if p.id in selected_ids]
+                            export_data = []
+                            for sp in selected_prods:
+                                desc_with_keys = sp.description
+                                if sp.keywords: desc_with_keys += f"\n\nTAGS: {sp.keywords}"
+                                    
+                                export_data.append({
+                                    "title": sp.title,
+                                    "description": desc_with_keys,
+                                    "price": sp.price,
+                                    "stock": sp.stock,
+                                    "sku": sp.sku or "",
+                                    "weight": 0.5
+                                })
+                            
+                            csv_data = st.session_state.product_agent.generate_mass_upload_csv(export_data)
+                            st.download_button("Clique para Download", data=csv_data, file_name="upload_shopee.csv", mime="text/csv")
+                        else:
+                            st.warning("Selecione itens.")
+                else:
+                    st.info("Catálogo vazio.")
+
 
     with tab6:
         from dashboard.components.settings_view import render_settings_page
