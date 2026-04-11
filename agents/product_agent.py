@@ -3,8 +3,8 @@ from core.llm_client import llm_client
 import pandas as pd
 from typing import Dict, List, Any
 from core.database.engine import get_session
-from core.database.models import Product
-from sqlmodel import select
+from core.database.models import Product, ProductVariation, InventoryItem, ProductComponent
+from sqlmodel import select, or_
 
 class ProductAgent(BaseAgent):
     def __init__(self):
@@ -54,6 +54,7 @@ class ProductAgent(BaseAgent):
     def generate_mass_upload_csv(self, products_data: List[Dict[str, str]]) -> str:
         """
         Creates a CSV string compatible with general e-commerce uploads.
+        Supports standard variations exported in rows.
         """
         if not products_data:
             return ""
@@ -169,8 +170,11 @@ class ProductAgent(BaseAgent):
                 description=data.get('description', ''),
                 keywords=data.get('keywords', ''),
                 price=data.get('price', 0.0),
+                supplier_price=data.get('supplier_price', 0.0),
                 stock=data.get('stock', 0),
+                initial_stock=data.get('initial_stock', 100),
                 sku=data.get('sku'),
+                shopee_id=data.get('shopee_id'),
                 category=data.get('category'),
                 user_id=user_id
             )
@@ -217,6 +221,63 @@ class ProductAgent(BaseAgent):
         except Exception as e:
             return {"success": False, "message": str(e)}
 
+    # --- VARIATION SPECIFIC CRUD --- #
+    def get_product_variations(self, product_id: int) -> List[ProductVariation]:
+        """Retrieves all variations for a product."""
+        session = next(get_session())
+        statement = select(ProductVariation).where(ProductVariation.product_id == product_id)
+        return session.exec(statement).all()
+
+    def save_variation(self, data: Dict[str, Any], product_id: int) -> Dict[str, Any]:
+        """Saves a variation to the database."""
+        try:
+            session = next(get_session())
+            new_var = ProductVariation(
+                name=data.get('name', 'Nova Variação'),
+                price=data.get('price', 0.0),
+                supplier_price=data.get('supplier_price', 0.0),
+                stock=data.get('stock', 0),
+                sku=data.get('sku'),
+                shopee_id=data.get('shopee_id'),
+                product_id=product_id
+            )
+            session.add(new_var)
+            session.commit()
+            session.refresh(new_var)
+            return {"success": True, "variation_id": new_var.id}
+        except Exception as e:
+            return {"success": False, "message": str(e)}
+
+    def update_variation(self, variation_id: int, updates: Dict[str, Any]) -> Dict[str, Any]:
+        """Updates an existing variation."""
+        try:
+            session = next(get_session())
+            var = session.get(ProductVariation, variation_id)
+            if not var:
+                return {"success": False, "message": "Variação não encontrada"}
+            
+            for key, value in updates.items():
+                if hasattr(var, key):
+                    setattr(var, key, value)
+            
+            session.add(var)
+            session.commit()
+            return {"success": True}
+        except Exception as e:
+            return {"success": False, "message": str(e)}
+
+    def delete_variation(self, variation_id: int) -> Dict[str, Any]:
+        """Deletes a variation."""
+        try:
+            session = next(get_session())
+            var = session.get(ProductVariation, variation_id)
+            if var:
+                session.delete(var)
+                session.commit()
+            return {"success": True}
+        except Exception as e:
+            return {"success": False, "message": str(e)}
+
     def process_csv_import(self, file, user_id: int) -> Dict[str, Any]:
         """Imports products from a Shopee-like CSV."""
         try:
@@ -255,9 +316,32 @@ class ProductAgent(BaseAgent):
         except Exception as e:
             return {"success": False, "message": str(e)}
 
+    def get_all_inventory_items(self, user_id: int) -> List[InventoryItem]:
+        """Retrieves all physical inventory items for a user."""
+        session = next(get_session())
+        statement = select(InventoryItem).where(InventoryItem.user_id == user_id)
+        return session.exec(statement).all()
+
+    def update_inventory_item(self, item_id: int, updates: Dict[str, Any]) -> Dict[str, Any]:
+        """Updates a physical inventory item."""
+        try:
+            session = next(get_session())
+            item = session.get(InventoryItem, item_id)
+            if not item:
+                return {"success": False, "message": "Item não encontrado"}
+            
+            for key, value in updates.items():
+                if hasattr(item, key):
+                    setattr(item, key, value)
+            
+            session.add(item)
+            session.commit()
+            return {"success": True}
+        except Exception as e:
+            return {"success": False, "message": str(e)}
+
     def run(self, *args, **kwargs):
         """
         Placeholder execution method.
-        In the future, this could automate the full flow of generating products + CSV.
         """
         pass

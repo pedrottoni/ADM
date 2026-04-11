@@ -17,7 +17,7 @@ def render_settings_page():
         llm_client.update_settings(provider, None)
         st.toast(f"Provedor alterado para {provider}!")
 
-    # 2. Show masked key check
+    # 2. Show masked key check and Edit Form
     key_map = {
         "gemini": Config.GOOGLE_API_KEY,
         "openrouter": Config.OPENROUTER_API_KEY,
@@ -25,11 +25,42 @@ def render_settings_page():
     }
     
     current_key = key_map.get(provider)
-    if current_key:
-        masked_key = f"{current_key[:4]}...{current_key[-4:]}" if len(current_key) > 8 else "****"
-        st.info(f"🔑 Chave API detectada: `{masked_key}`")
-    else:
-        st.error("❌ Chave API não encontrada no arquivo .env!")
+    
+    col_k1, col_k2 = st.columns([4, 1])
+    with col_k1:
+        if current_key:
+            masked_key = f"{current_key[:4]}...{current_key[-4:]}" if len(current_key) > 8 else "****"
+            st.info(f"🔑 Chave API detectada: `{masked_key}`")
+        else:
+            st.error("❌ Chave API não encontrada no arquivo .env!")
+            
+    with col_k2:
+        if st.button("✏️ Editar Chave", use_container_width=True):
+            st.session_state[f"edit_key_{provider}"] = not st.session_state.get(f"edit_key_{provider}", False)
+
+    # Key editing form
+    if st.session_state.get(f"edit_key_{provider}", False):
+        with st.container(border=True):
+            new_key = st.text_input(f"Nova Chave API para {provider}", type="password", help="Cole a nova chave aqui.")
+            
+            c1, c2 = st.columns(2)
+            if c1.button("Salvar Chave 💾", type="primary", use_container_width=True):
+                if new_key:
+                    success = Config.set_api_key(provider, new_key)
+                    if success:
+                        st.success("Chave salva com sucesso!")
+                        # Force reload of LLM client so it grabs the new key
+                        llm_client.setup_provider() 
+                        st.session_state[f"edit_key_{provider}"] = False
+                        st.rerun()
+                    else:
+                        st.error("Erro ao salvar a chave.")
+                else:
+                    st.warning("Insira uma chave válida.")
+            
+            if c2.button("Cancelar ❌", use_container_width=True):
+                st.session_state[f"edit_key_{provider}"] = False
+                st.rerun()
 
     # 3. Model Selection
     available_models = llm_client.get_available_models()

@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import re
 from core.config import Config
 from core.database.engine import create_db_and_tables, get_session, initialize_default_user
 from core.database.models import User
@@ -79,7 +80,7 @@ def main():
     # Main Content
     st.title("🚀 Shopee Growth Quest")
     
-    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["🏠 Resumo", "💰 Financeiro", "📢 Anúncios", "🤝 Atendimento", "📦 Produtos", "⚙️ Configurações"])
+    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["🏠 Resumo", "💰 Financeiro", "📢 Central de Marketing", "🤝 Atendimento", "📦 Meus Anúncios", "⚙️ Configurações"])
     
     with tab1:
         st.header("Missões do Dia")
@@ -273,7 +274,7 @@ def main():
                         st.error(res["message"])
 
     with tab3:
-        st.header("📢 Mestre dos Anúncios")
+        st.header("📢 Central de Marketing")
         from agents.ads_agent import AdsAgent
         ads_agent = AdsAgent()
         
@@ -354,84 +355,168 @@ def main():
 
 
     with tab5:
-        st.header("📦 Gestão de Produtos")
+        st.header("📦 Gestão de Anúncios")
         from agents.product_agent import ProductAgent
         if 'product_agent' not in st.session_state:
             st.session_state.product_agent = ProductAgent()
         
-        # 1. CATÁLOGO (Always visible at top)
-        with st.container(border=True):
-            st.subheader("📚 Meus Produtos")
-            products = st.session_state.product_agent.get_all_products(user.id)
+        # Carregar dados (Anúncios Shopee e Itens de Inventário Físico)
+        products = st.session_state.product_agent.get_all_products(user.id)
+        inventory_items = st.session_state.product_agent.get_all_inventory_items(user.id)
+        
+        # -- LÓGICA DE AGREGAÇÃO UNIFICADA --
+        total_potes_vendidos = 0
+        total_cogs_vendas = 0.0
+        total_variantes_vendidas = 0
+        product_groups = {}
+        vendidos_por_item = {item.id: 0 for item in inventory_items} if inventory_items else {}
+
+        if products:
+            for p in products:
+                base_name = re.sub(r' - \d+x$', '', p.title.strip()).strip()
+                pkgs_sold = (p.initial_stock or 100) - p.stock
+                if pkgs_sold < 0: pkgs_sold = 0
+                
+                total_variantes_vendidas += pkgs_sold
+                ad_potes_sold = 0
+                ad_cogs = 0.0
+                
+                if hasattr(p, 'components') and p.components:
+                    for comp in p.components:
+                        inv_item = next((i for i in inventory_items if i.id == comp.inventory_item_id), None)
+                        qty = comp.quantity or 1
+                        item_units = pkgs_sold * qty
+                        item_cogs = item_units * (inv_item.supplier_price if inv_item else 0.0)
+                        ad_potes_sold += item_units
+                        ad_cogs += item_cogs
+                        if comp.inventory_item_id in vendidos_por_item:
+                            vendidos_por_item[comp.inventory_item_id] += item_units
+                else:
+                    ad_potes_sold = pkgs_sold
+                    ad_cogs = pkgs_sold * (p.supplier_price or 0.0)
+
+                if base_name not in product_groups:
+                    product_groups[base_name] = {"units": 0, "cogs": 0.0, "variations": []}
+                
+                product_groups[base_name]["units"] += ad_potes_sold
+                product_groups[base_name]["cogs"] += ad_cogs
+                product_groups[base_name]["variations"].append({
+                    "id": p.id, "title": p.title, "pkgs": pkgs_sold, "stock": p.stock, "units": ad_potes_sold, "cogs": ad_cogs
+                })
+                total_potes_vendidos += ad_potes_sold
+                total_cogs_vendas += ad_cogs
+
+        sub_tab_vendas, sub_tab_estoque = st.tabs(["📊 Desempenho de Vendas", "🏬 Estoque de Potes (Físico)"])
+
+        with sub_tab_vendas:
+            st.subheader("📈 Performance Comercial")
             
             if products:
-                # KPIs for Catalog
-                c1, c2, c3 = st.columns(3)
-                total_stock = sum(p.stock for p in products)
-                total_value = sum(p.price * p.stock for p in products)
-                c1.metric("Total de Itens", len(products))
-                c2.metric("Estoque Total", total_stock)
-                c3.metric("Vlr. em Estoque", f"R$ {total_value:,.2f}")
+                c1, c2 = st.columns(2)
+                c1.metric("Produtos (Bases)", len(product_groups))
+                c2.metric("Variações Vendidas", f"{total_variantes_vendidas} kits")
                 
-                # Table Data
-                df_prods = pd.DataFrame([{
-                    "ID": p.id,
-                    "Título": p.title,
-                    "Preço": p.price,
-                    "Estoque": p.stock,
-                    "SKU": p.sku or "",
-                    "Keywords": p.keywords or "",
-                    "Descrição": p.description or ""
-                } for p in products])
+                st.divider()
                 
-                edited_df = st.data_editor(
-                    df_prods,
-                    column_config={
-                        "ID": st.column_config.NumberColumn(disabled=True),
-                        "Título": st.column_config.TextColumn("Título", width="large"),
-                        "Preço": st.column_config.NumberColumn("Preço", format="R$ %.2f"),
-                        "Estoque": st.column_config.NumberColumn("Estoque"),
-                        "Descrição": st.column_config.TextColumn("Descrição", width="medium"),
-                    },
-                    hide_index=True,
-                    width="stretch",
-                    num_rows="dynamic",
-                    key="product_catalog_editor"
-                )
-                
-                if st.button("Salvar Alterações no Catálogo 💾", type="primary"):
-                    # Process Deletions
-                    original_ids = set(df_prods["ID"])
-                    edited_ids = set(edited_df["ID"].dropna())
-                    ids_to_del = original_ids - edited_ids
-                    
-                    for p_id in ids_to_del:
-                        st.session_state.product_agent.delete_product(int(p_id))
-                    
-                    # Process Updates
-                    for _, row in edited_df.iterrows():
-                        p_id = row.get("ID")
-                        if pd.notna(p_id):
-                            updates = {
-                                "title": row["Título"],
-                                "price": float(row["Preço"]),
-                                "stock": int(row["Estoque"]),
-                                "sku": row["SKU"],
-                                "keywords": row["Keywords"],
-                                "description": row["Descrição"]
-                            }
-                            st.session_state.product_agent.update_product(int(p_id), updates)
-                    
-                    st.success("Catálogo Atualizado!")
-                    st.rerun()
+                st.markdown("""
+                <style>
+                [data-testid="stExpander"] summary div[data-testid="stMarkdownContainer"] { width: 100% !important; }
+                [data-testid="stExpander"] summary p { display: flex !important; justify-content: space-between !important; width: 100% !important; align-items: center !important; }
+                </style>
+                """, unsafe_allow_html=True)
+
+                for base_name, data in product_groups.items():
+                    label = f"📦 {base_name} **:green[Vendidos: {data['units']} un.] &nbsp;|&nbsp; :red[Custo: R$ {data['cogs']:,.2f}]**"
+                    with st.expander(label):
+                        for v in data["variations"]:
+                            m = re.search(r'- (\d+)x$', v['title'])
+                            n = m.group(1) if m else "1"
+                            txt = f"{n} Frasco" if n == "1" else f"{n} Frascos"
+                            st.markdown(f"""
+                                <div style='display: flex; justify-content: space-between; border-bottom: 1px solid #ffffff1e; padding: 5px 0;'>
+                                    <span>Variação: <b>{txt}</b></span>
+                                    <span>
+                                        <span style='color: #4CAF50;'>{v['pkgs']} kits</span> &nbsp;|&nbsp; Stock Shopee: {v['stock']} &nbsp;|&nbsp; <span style='color: #F44336;'>Custo: R$ {v['cogs']:,.2f}</span>
+                                    </span>
+                                </div>
+                            """, unsafe_allow_html=True)
             else:
-                st.info("Seu catálogo está vazio. Adicione produtos abaixo ou importe um CSV.")
+                st.info("Nenhum anúncio mapeado.")
+                
+        with sub_tab_estoque:
+            st.subheader("🏬 Inventário de Potes Físicos")
+            if inventory_items:
+                c1, c2 = st.columns(2)
+                c1.metric("Potes Vendidos (Real)", f"{total_potes_vendidos} un.", help="Soma física de todos os potes de todos os kits")
+                c2.metric("COGS (Custo de Venda)", f"R$ {total_cogs_vendas:,.2f}", delta="-Saída", delta_color="inverse")
+                
+                df_inv = pd.DataFrame([{
+                    "ID": item.id,
+                    "Nome": item.name,
+                    "Custo": item.supplier_price,
+                    "Potes Vendidos": vendidos_por_item.get(item.id, 0)
+                } for item in inventory_items])
+
+                st.info("💡 O estoque é controlado automaticamente pelo 'E. Shopee' nos SKUs Virtuais abaixo.")
+
+ 
+                
+                edited_inv = st.data_editor(
+                    df_inv,
+                    column_config={
+                        "ID": None,
+                        "Custo": st.column_config.NumberColumn(format="R$ %.2f"),
+                        "Potes Vendidos": st.column_config.NumberColumn(disabled=True)
+                    },
+                    hide_index=True, use_container_width=True, key="inv_ed"
+                )
+
+                if st.button("Salvar Alterações de Custo"):
+                    for _, row in edited_inv.iterrows():
+                        st.session_state.product_agent.update_inventory_item(int(row["ID"]), {
+                            "name": row["Nome"], 
+                            "supplier_price": float(row["Custo"])
+                        })
+                    st.success("Costos atualizados!")
+                    st.rerun()
+            
+            with st.expander("➕ Novo Item Físico"):
+                col_i1, col_i2 = st.columns(2)
+                ni_name = col_i1.text_input("Nome", key="ni_name_inp")
+                ni_cost = col_i2.number_input("Custo", min_value=0.0, key="ni_cost_inp")
+                if st.button("Adicionar Item"):
+                    from core.database.models import InventoryItem
+                    session = next(get_session()); session.add(InventoryItem(name=ni_name, supplier_price=ni_cost, stock=0, initial_stock=0, user_id=user.id)); session.commit()
+                    st.success("Adicionado!"); st.rerun()
 
         st.divider()
+        with st.expander("📑 Editor de Anúncios Shopee (SKUs Virtuais)"):
+            if products:
+                df_prods = pd.DataFrame([{"ID": p.id, "Título": p.title, "Preço": p.price, "E. Shopee": p.stock} for p in products])
+                edit_ads = st.data_editor(df_prods, column_config={"ID": None}, hide_index=True, use_container_width=True, key="ads_ed")
+                if st.button("Salvar Anúncios"):
+                    for _, row in edit_ads.iterrows():
+                        st.session_state.product_agent.update_product(int(row["ID"]), {"title": row["Título"], "price": float(row["Preço"]), "stock": int(row["E. Shopee"])})
+                    st.success("Anúncios salvos!"); st.rerun()
+            else:
+                st.info("Nenhum anúncio para editar.")
+            
+            with st.expander("➕ Novo SKU Virtual (Manual)"):
+                col_nv1, col_nv2, col_nv3 = st.columns([2, 1, 1])
+                nv_title = col_nv1.text_input("Título do Anúncio", key="nv_title_inp")
+                nv_price = col_nv2.number_input("Preço de Venda", min_value=0.0, key="nv_price_inp")
+                nv_stock = col_nv3.number_input("E. Shopee", min_value=0, step=1, key="nv_stock_inp")
+                if st.button("Adicionar SKU Virtual"):
+                    st.session_state.product_agent.save_product({
+                        "title": nv_title, "price": nv_price, "stock": int(nv_stock), "description": "Manual"
+                    }, user.id)
+                    st.success("SKU Virtual adicionado!"); st.rerun()
+                    
+        st.divider()
 
-        # 2. ADICIONAR PRODUTOS (The core engine)
+        # 2. ADICIONAR ANÚNCIO (The core engine)
         with st.container(border=True):
-            st.subheader("➕ Adicionar Produtos")
+            st.subheader("➕ Adicionar Novo Anúncio com IA")
             
             method = st.radio("Método de Criação:", ["Manual (Texto)", "Imagem (Vision + IA Search) 📸"], horizontal=True)
             
