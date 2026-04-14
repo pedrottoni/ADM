@@ -30,6 +30,8 @@ class Transaction(SQLModel, table=True):
     category: str # "Sale", "Ads", "COGS", "Subscription", "Other"
     description: str
     amount: float
+    product_id: Optional[int] = Field(default=None, foreign_key="product.id")
+    quantity: int = Field(default=1)  # Quantidade de unidades vendidas nesta transação
     
     user_id: Optional[int] = Field(default=None, foreign_key="user.id")
 
@@ -52,6 +54,7 @@ class InventoryItem(SQLModel, table=True):
     supplier_price: float = Field(default=0.0)
     stock: int = Field(default=0)
     initial_stock: int = Field(default=100)
+    min_stock: int = Field(default=10) # Limite para alerta de reposição
     created_at: datetime = Field(default_factory=datetime.utcnow)
     
     user_id: Optional[int] = Field(default=None, foreign_key="user.id")

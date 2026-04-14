@@ -1,73 +1,117 @@
 from agents.base_agent import BaseAgent
 from core.llm_client import llm_client
 from core.database.engine import get_session
-from core.database.models import Transaction, User
+from core.database.models import Transaction, User, Product
+from core.sales_service import SalesService
 from sqlmodel import select, Session
 import pandas as pd
 from typing import Dict, Any, List
 from datetime import datetime
+import json
+import re
 
 class FinanceAgent(BaseAgent):
     def __init__(self):
         super().__init__("Finance Guardian")
+        self.sales_service = SalesService()
 
     def process_upload(self, file, user_id: int) -> dict:
         """
-        Parses a Shopee Sales Report (CSV/XLSX) and saves transactions.
-        Simple mapper for now: expects columns like 'Data', 'Valor', 'Descrição'.
+        Phase 1: Reads a CSV/XLSX file and sends it to the LLM for intelligent parsing.
+        Returns structured data for preview (does NOT save yet).
         """
         try:
-            # Detect file type
+            # Read file content
             if file.name.endswith('.csv'):
                 df = pd.read_csv(file)
             else:
                 df = pd.read_excel(file)
             
-            # Simple Column Normalization (Mocking Shopee standard columns)
-            # Shopee usually has: 'Data do Pedido', 'Valor Total', 'Nome do Produto'
-            # We will look for these or fallback to generic english
+            # Convert to string for LLM (limit to 100 rows to avoid token overflow)
+            csv_text = df.head(100).to_csv(index=False)
+            total_rows = len(df)
             
-            # TODO: Add robust column mapping logic
-            # For MVP, we assume the user uploads a clean template or we map loosely
-            
-            date_col = next((c for c in df.columns if 'date' in c.lower() or 'data' in c.lower()), None)
-            amount_col = next((c for c in df.columns if 'amount' in c.lower() or 'valor' in c.lower() or 'total' in c.lower()), None)
-            desc_col = next((c for c in df.columns if 'item' in c.lower() or 'prod' in c.lower() or 'desc' in c.lower()), 'Item Generico')
+            # Build LLM prompt
+            prompt = f"""Você é um assistente especializado em processar relatórios de vendas de e-commerce.
 
-            if not date_col or not amount_col:
-                return {"success": False, "message": "Colunas 'Data' ou 'Valor' não encontradas."}
+Analise este arquivo de vendas e extraia as informações relevantes em formato JSON.
 
-            session = next(get_session())
-            count = 0
-            
-            for _, row in df.iterrows():
-                try:
-                    # Clean Amount
-                    val_str = str(row[amount_col]).replace('R$', '').replace(',', '.').strip()
-                    amount = float(val_str)
-                    
-                    # Clean Date
-                    date_val = pd.to_datetime(row[date_col])
+ARQUIVO (primeiras {min(total_rows, 100)} de {total_rows} linhas):
+```
+{csv_text}
+```
 
-                    txn = Transaction(
-                        date=date_val,
-                        type="INCOME", # Assuming sales report for now
-                        category="Sale",
-                        description=str(row.get(desc_col, "Venda Shopee")),
-                        amount=amount,
-                        user_id=user_id
-                    )
-                    session.add(txn)
-                    count += 1
-                except Exception as e:
-                    print(f"Skipping row: {e}")
-                    continue
+REGRAS:
+1. Extraia APENAS pedidos com status "Concluído", "Completo", "Completed", "Delivered" ou similar. IGNORE pedidos "Cancelado", "Cancelled", "Devolvido", "Returned".
+2. Identifique as colunas corretas para: data do pedido, nome do produto, valor total da venda.
+3. Se houver uma coluna de quantidade, use-a. Caso contrário, assuma quantidade = 1.
+4. Se houver taxas/frete como colunas separadas, NÃO inclua como valor da venda.
+5. Limpe valores monetários (remova "R$", converta vírgula para ponto).
+
+RETORNE ESTRITAMENTE um JSON array com este formato (sem markdown, sem explicação, APENAS o JSON):
+[
+  {{"date": "2025-01-01", "product": "Nome do Produto", "amount": 89.90, "quantity": 1, "status": "Concluído"}},
+  ...
+]
+
+Se o arquivo estiver vazio ou não contiver vendas válidas, retorne: []"""
+
+            # Call LLM
+            response = llm_client.generate_content(prompt)
             
-            session.commit()
-            return {"success": True, "message": f"{count} transações importadas com sucesso!"}
+            # Parse JSON from LLM response
+            parsed_data = self._extract_json_from_response(response)
+            
+            if parsed_data is None:
+                return {"success": False, "message": "Não foi possível interpretar o arquivo. Verifique o formato.", "raw_response": response}
+            
+            return {
+                "success": True, 
+                "data": parsed_data,
+                "total_rows_in_file": total_rows,
+                "parsed_count": len(parsed_data),
+                "message": f"LLM extraiu {len(parsed_data)} vendas válidas de {total_rows} linhas."
+            }
 
         except Exception as e:
             return {"success": False, "message": f"Erro ao processar arquivo: {str(e)}"}
+
+    def confirm_upload(self, sales_data: List[Dict], user_id: int) -> dict:
+        """
+        Phase 2: After user reviews the preview, save transactions and update stock.
+        Delegates to SalesService for stock management.
+        """
+        try:
+            result = self.sales_service.process_income_batch(sales_data, user_id)
+            return result
+        except Exception as e:
+            return {"success": False, "message": f"Erro ao confirmar upload: {str(e)}"}
+
+    def _extract_json_from_response(self, response: str):
+        """Extract JSON array from LLM response, handling markdown code blocks."""
+        try:
+            # Try direct parse first
+            return json.loads(response.strip())
+        except json.JSONDecodeError:
+            pass
+        
+        # Try extracting from markdown code block
+        json_match = re.search(r'```(?:json)?\s*\n?(.*?)\n?```', response, re.DOTALL)
+        if json_match:
+            try:
+                return json.loads(json_match.group(1).strip())
+            except json.JSONDecodeError:
+                pass
+        
+        # Try finding array brackets
+        bracket_match = re.search(r'\[.*\]', response, re.DOTALL)
+        if bracket_match:
+            try:
+                return json.loads(bracket_match.group(0))
+            except json.JSONDecodeError:
+                pass
+        
+        return None
 
     def get_financial_stats(self, user_id: int) -> Dict[str, Any]:
         """Calculates Revenue, Costs, Profit from DB."""
@@ -114,23 +158,44 @@ class FinanceAgent(BaseAgent):
         advice = llm_client.generate_content(prompt)
         return {"stats": stats, "advice": advice}
 
-
-
-    def add_transaction(self, date: datetime, description: str, amount: float, category: str, type: str, user_id: int):
-        """Manually adds a single transaction."""
+    def add_transaction(self, date: datetime, description: str, amount: float, 
+                       category: str, type: str, user_id: int, 
+                       product_id: int = None, quantity: int = 1):
+        """
+        Manually adds a single transaction.
+        If type is INCOME and product_id is provided, also updates stock.
+        """
         try:
             session = next(get_session())
+            
             txn = Transaction(
                 date=date,
                 description=description,
                 amount=amount,
                 category=category,
                 type=type,
+                product_id=product_id,
+                quantity=quantity,
                 user_id=user_id
             )
             session.add(txn)
+            
+            stock_result = None
+            
+            # If it's a sale with a linked product, update stock
+            if type == "INCOME" and product_id:
+                product = session.get(Product, product_id)
+                if product:
+                    stock_result = self.sales_service.process_sale(product, quantity, session)
+            
             session.commit()
-            return {"success": True, "message": "Transação registrada com sucesso!"}
+            
+            return {
+                "success": True, 
+                "message": "Transacao registrada com sucesso!",
+                "stock_updated": stock_result is not None,
+                "stock_result": stock_result
+            }
         except Exception as e:
             return {"success": False, "message": f"Erro ao registrar: {str(e)}"}
 
@@ -142,8 +207,8 @@ class FinanceAgent(BaseAgent):
             if txn:
                 session.delete(txn)
                 session.commit()
-                return {"success": True, "message": "Transação removida."}
-            return {"success": False, "message": "Transação não encontrada."}
+                return {"success": True, "message": "Transacao removida."}
+            return {"success": False, "message": "Transacao nao encontrada."}
         except Exception as e:
             return {"success": False, "message": f"Erro ao deletar: {str(e)}"}
 
@@ -157,8 +222,8 @@ class FinanceAgent(BaseAgent):
                     setattr(txn, key, value)
                 session.add(txn)
                 session.commit()
-                return {"success": True, "message": "Transação atualizada."}
-            return {"success": False, "message": "Transação não encontrada."}
+                return {"success": True, "message": "Transacao atualizada."}
+            return {"success": False, "message": "Transacao nao encontrada."}
         except Exception as e:
             return {"success": False, "message": f"Erro ao atualizar: {str(e)}"}
 
@@ -166,7 +231,7 @@ class FinanceAgent(BaseAgent):
         """Generates a comprehensive financial report using LLM."""
         stats = self.get_financial_stats(user_id)
         if stats["transaction_count"] == 0:
-            return "Sem dados suficientes para análise profunda. Por favor, registre vendas ou despesas."
+            return "Sem dados suficientes para analise profunda. Por favor, registre vendas ou despesas."
 
         # Aggregate Product Sales
         transactions = stats["raw_data"]
@@ -200,17 +265,15 @@ class FinanceAgent(BaseAgent):
         {context}
         
         Gere um relatório estruturado em Markdown com:
-        1. 🏆 **O que está funcionando?** (Destaque pontos fortes e Top Produtos)
-        2. ⚠️ **Pontos de Atenção** (Análise de custos e margem. Se a margem for baixo de 20%, critique. Se custos > 40% da receita, alerte).
-        3. 💡 **Oportunidades de Melhoria** (Sugestões para os produtos menos vendidos: Bundle? Promoção? Ads? Descontinuar?).
-        4. 🚀 **Plano de Ação** (3 passos práticos para aumentar o lucro na próxima semana).
+        1. **O que está funcionando?** (Destaque pontos fortes e Top Produtos)
+        2. **Pontos de Atenção** (Análise de custos e margem. Se a margem for baixo de 20%, critique. Se custos > 40% da receita, alerte).
+        3. **Oportunidades de Melhoria** (Sugestões para os produtos menos vendidos: Bundle? Promoção? Ads? Descontinuar?).
+        4. **Plano de Ação** (3 passos práticos para aumentar o lucro na próxima semana).
         
         Seja direto, profissional mas motivador. Use emojis para facilitar a leitura.
         """
         
         return llm_client.generate_content(prompt)
-
-
 
     def run(self, user_id: int):
         """Default run method required by BaseAgent."""

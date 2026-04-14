@@ -340,6 +340,69 @@ class ProductAgent(BaseAgent):
         except Exception as e:
             return {"success": False, "message": str(e)}
 
+    def get_product_components(self, product_id: int) -> List[ProductComponent]:
+        """Retrieves all components (physical items) linked to a virtual product."""
+        session = next(get_session())
+        statement = select(ProductComponent).where(ProductComponent.product_id == product_id)
+        return session.exec(statement).all()
+
+    def add_product_component(self, product_id: int, inventory_item_id: int, quantity: int) -> Dict[str, Any]:
+        """Links an inventory item to a product with a specific quantity."""
+        try:
+            session = next(get_session())
+            new_comp = ProductComponent(
+                product_id=product_id,
+                inventory_item_id=inventory_item_id,
+                quantity=quantity
+            )
+            session.add(new_comp)
+            session.commit()
+            return {"success": True}
+        except Exception as e:
+            return {"success": False, "message": str(e)}
+
+    def delete_product_component(self, component_id: int) -> Dict[str, Any]:
+        """Removes a link between an inventory item and a product."""
+        try:
+            session = next(get_session())
+            comp = session.get(ProductComponent, component_id)
+            if comp:
+                session.delete(comp)
+                session.commit()
+            return {"success": True}
+        except Exception as e:
+            return {"success": False, "message": str(e)}
+
+    def get_low_stock_items(self, user_id: int) -> List[InventoryItem]:
+        """Returns inventory items where stock <= min_stock."""
+        session = next(get_session())
+        statement = select(InventoryItem).where(
+            InventoryItem.user_id == user_id,
+            InventoryItem.stock <= InventoryItem.min_stock
+        )
+        return session.exec(statement).all()
+
+    def generate_image_prompt(self, title: str, description: str) -> str:
+        """Generates 3 image prompts for Midjourney/DALL-E."""
+        prompt = f"""
+        Você é um Diretor de Arte Especialista em Fotografia de Produto para E-commerce.
+        Crie 3 variações de prompts para gerar imagens realistas do seguinte produto:
+        Título: {title}
+        Descrição: {description}
+        
+        DIRETRIZES:
+        - Estilo: Fotografia comercial, ultra-detalhada, iluminação de estúdio (softbox).
+        - Cores: Paleta limpa, tons que remetam a saúde e bem-estar.
+        - Fundo: Minimalista, fundo infinito ou ambiente de casa premium.
+        
+        FORMATO DE RESPOSTA:
+        VARIAÇÃO 1 (Estúdio): [Prompt em inglês]
+        VARIAÇÃO 2 (Lifestyle/Contexto): [Prompt em inglês]
+        VARIAÇÃO 3 (Foco em Detalhe): [Prompt em inglês]
+        """
+        response = llm_client.generate_content(prompt)
+        return response
+
     def run(self, *args, **kwargs):
         """
         Placeholder execution method.
