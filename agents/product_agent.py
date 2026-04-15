@@ -2,9 +2,11 @@ from agents.base_agent import BaseAgent
 from core.llm_client import llm_client
 import pandas as pd
 from typing import Dict, List, Any
-from core.database.engine import get_session
+from core.database.engine import get_session, engine
 from core.database.models import Product, ProductVariation, InventoryItem, ProductComponent
-from sqlmodel import select, or_
+from sqlalchemy.orm import selectinload
+
+from sqlmodel import select, or_, Session
 
 class ProductAgent(BaseAgent):
     def __init__(self):
@@ -164,117 +166,120 @@ class ProductAgent(BaseAgent):
     def save_product(self, data: Dict[str, Any], user_id: int) -> Dict[str, Any]:
         """Saves a product to the database."""
         try:
-            session = next(get_session())
-            new_product = Product(
-                title=data.get('title', 'Sem Título'),
-                description=data.get('description', ''),
-                keywords=data.get('keywords', ''),
-                price=data.get('price', 0.0),
-                supplier_price=data.get('supplier_price', 0.0),
-                stock=data.get('stock', 0),
-                initial_stock=data.get('initial_stock', 100),
-                sku=data.get('sku'),
-                shopee_id=data.get('shopee_id'),
-                category=data.get('category'),
-                user_id=user_id
-            )
-            session.add(new_product)
-            session.commit()
-            session.refresh(new_product)
-            return {"success": True, "product_id": new_product.id}
+            with Session(engine) as session:
+                new_product = Product(
+                    title=data.get('title', 'Sem Título'),
+                    description=data.get('description', ''),
+                    keywords=data.get('keywords', ''),
+                    price=data.get('price', 0.0),
+                    supplier_price=data.get('supplier_price', 0.0),
+                    stock=data.get('stock', 0),
+                    initial_stock=data.get('initial_stock', 100),
+                    sku=data.get('sku'),
+                    shopee_id=data.get('shopee_id'),
+                    category=data.get('category'),
+                    user_id=user_id
+                )
+                session.add(new_product)
+                session.commit()
+                session.refresh(new_product)
+                return {"success": True, "product_id": new_product.id}
+
         except Exception as e:
             return {"success": False, "message": str(e)}
 
     def get_all_products(self, user_id: int) -> List[Product]:
         """Retrieves all products for a user."""
-        session = next(get_session())
-        statement = select(Product).where(Product.user_id == user_id)
-        return session.exec(statement).all()
+        with Session(engine) as session:
+            statement = select(Product).options(selectinload(Product.components)).where(Product.user_id == user_id)
+            return session.exec(statement).all()
+
 
     def update_product(self, product_id: int, updates: Dict[str, Any]) -> Dict[str, Any]:
         """Updates an existing product."""
         try:
-            session = next(get_session())
-            product = session.get(Product, product_id)
-            if not product:
-                return {"success": False, "message": "Produto não encontrado"}
-            
-            for key, value in updates.items():
-                if hasattr(product, key):
-                    setattr(product, key, value)
-            
-            session.add(product)
-            session.commit()
-            return {"success": True}
+            with Session(engine) as session:
+                product = session.get(Product, product_id)
+                if not product:
+                    return {"success": False, "message": "Produto não encontrado"}
+                
+                for key, value in updates.items():
+                    if hasattr(product, key):
+                        setattr(product, key, value)
+                
+                session.add(product)
+                session.commit()
+                return {"success": True}
         except Exception as e:
             return {"success": False, "message": str(e)}
 
     def delete_product(self, product_id: int) -> Dict[str, Any]:
         """Deletes a product."""
         try:
-            session = next(get_session())
-            product = session.get(Product, product_id)
-            if product:
-                session.delete(product)
-                session.commit()
-            return {"success": True}
+            with Session(engine) as session:
+                product = session.get(Product, product_id)
+                if product:
+                    session.delete(product)
+                    session.commit()
+                return {"success": True}
         except Exception as e:
             return {"success": False, "message": str(e)}
 
     # --- VARIATION SPECIFIC CRUD --- #
     def get_product_variations(self, product_id: int) -> List[ProductVariation]:
         """Retrieves all variations for a product."""
-        session = next(get_session())
-        statement = select(ProductVariation).where(ProductVariation.product_id == product_id)
-        return session.exec(statement).all()
+        with Session(engine) as session:
+            statement = select(ProductVariation).where(ProductVariation.product_id == product_id)
+            return session.exec(statement).all()
+
 
     def save_variation(self, data: Dict[str, Any], product_id: int) -> Dict[str, Any]:
         """Saves a variation to the database."""
         try:
-            session = next(get_session())
-            new_var = ProductVariation(
-                name=data.get('name', 'Nova Variação'),
-                price=data.get('price', 0.0),
-                supplier_price=data.get('supplier_price', 0.0),
-                stock=data.get('stock', 0),
-                sku=data.get('sku'),
-                shopee_id=data.get('shopee_id'),
-                product_id=product_id
-            )
-            session.add(new_var)
-            session.commit()
-            session.refresh(new_var)
-            return {"success": True, "variation_id": new_var.id}
+            with Session(engine) as session:
+                new_var = ProductVariation(
+                    name=data.get('name', 'Nova Variação'),
+                    price=data.get('price', 0.0),
+                    supplier_price=data.get('supplier_price', 0.0),
+                    stock=data.get('stock', 0),
+                    sku=data.get('sku'),
+                    shopee_id=data.get('shopee_id'),
+                    product_id=product_id
+                )
+                session.add(new_var)
+                session.commit()
+                session.refresh(new_var)
+                return {"success": True, "variation_id": new_var.id}
         except Exception as e:
             return {"success": False, "message": str(e)}
 
     def update_variation(self, variation_id: int, updates: Dict[str, Any]) -> Dict[str, Any]:
         """Updates an existing variation."""
         try:
-            session = next(get_session())
-            var = session.get(ProductVariation, variation_id)
-            if not var:
-                return {"success": False, "message": "Variação não encontrada"}
-            
-            for key, value in updates.items():
-                if hasattr(var, key):
-                    setattr(var, key, value)
-            
-            session.add(var)
-            session.commit()
-            return {"success": True}
+            with Session(engine) as session:
+                var = session.get(ProductVariation, variation_id)
+                if not var:
+                    return {"success": False, "message": "Variação não encontrada"}
+                
+                for key, value in updates.items():
+                    if hasattr(var, key):
+                        setattr(var, key, value)
+                
+                session.add(var)
+                session.commit()
+                return {"success": True}
         except Exception as e:
             return {"success": False, "message": str(e)}
 
     def delete_variation(self, variation_id: int) -> Dict[str, Any]:
         """Deletes a variation."""
         try:
-            session = next(get_session())
-            var = session.get(ProductVariation, variation_id)
-            if var:
-                session.delete(var)
-                session.commit()
-            return {"success": True}
+            with Session(engine) as session:
+                var = session.get(ProductVariation, variation_id)
+                if var:
+                    session.delete(var)
+                    session.commit()
+                return {"success": True}
         except Exception as e:
             return {"success": False, "message": str(e)}
 
@@ -318,69 +323,72 @@ class ProductAgent(BaseAgent):
 
     def get_all_inventory_items(self, user_id: int) -> List[InventoryItem]:
         """Retrieves all physical inventory items for a user."""
-        session = next(get_session())
-        statement = select(InventoryItem).where(InventoryItem.user_id == user_id)
-        return session.exec(statement).all()
+        with Session(engine) as session:
+            statement = select(InventoryItem).where(InventoryItem.user_id == user_id)
+            return session.exec(statement).all()
+
 
     def update_inventory_item(self, item_id: int, updates: Dict[str, Any]) -> Dict[str, Any]:
         """Updates a physical inventory item."""
         try:
-            session = next(get_session())
-            item = session.get(InventoryItem, item_id)
-            if not item:
-                return {"success": False, "message": "Item não encontrado"}
-            
-            for key, value in updates.items():
-                if hasattr(item, key):
-                    setattr(item, key, value)
-            
-            session.add(item)
-            session.commit()
-            return {"success": True}
+            with Session(engine) as session:
+                item = session.get(InventoryItem, item_id)
+                if not item:
+                    return {"success": False, "message": "Item não encontrado"}
+                
+                for key, value in updates.items():
+                    if hasattr(item, key):
+                        setattr(item, key, value)
+                
+                session.add(item)
+                session.commit()
+                return {"success": True}
         except Exception as e:
             return {"success": False, "message": str(e)}
 
     def get_product_components(self, product_id: int) -> List[ProductComponent]:
         """Retrieves all components (physical items) linked to a virtual product."""
-        session = next(get_session())
-        statement = select(ProductComponent).where(ProductComponent.product_id == product_id)
-        return session.exec(statement).all()
+        with Session(engine) as session:
+            statement = select(ProductComponent).where(ProductComponent.product_id == product_id)
+            return session.exec(statement).all()
+
 
     def add_product_component(self, product_id: int, inventory_item_id: int, quantity: int) -> Dict[str, Any]:
         """Links an inventory item to a product with a specific quantity."""
         try:
-            session = next(get_session())
-            new_comp = ProductComponent(
-                product_id=product_id,
-                inventory_item_id=inventory_item_id,
-                quantity=quantity
-            )
-            session.add(new_comp)
-            session.commit()
-            return {"success": True}
+            with Session(engine) as session:
+                new_comp = ProductComponent(
+                    product_id=product_id,
+                    inventory_item_id=inventory_item_id,
+                    quantity=quantity
+                )
+                session.add(new_comp)
+                session.commit()
+                return {"success": True}
         except Exception as e:
             return {"success": False, "message": str(e)}
 
     def delete_product_component(self, component_id: int) -> Dict[str, Any]:
         """Removes a link between an inventory item and a product."""
         try:
-            session = next(get_session())
-            comp = session.get(ProductComponent, component_id)
-            if comp:
-                session.delete(comp)
-                session.commit()
-            return {"success": True}
+            with Session(engine) as session:
+                comp = session.get(ProductComponent, component_id)
+                if comp:
+                    session.delete(comp)
+                    session.commit()
+                return {"success": True}
         except Exception as e:
             return {"success": False, "message": str(e)}
 
     def get_low_stock_items(self, user_id: int) -> List[InventoryItem]:
         """Returns inventory items where stock <= min_stock."""
-        session = next(get_session())
-        statement = select(InventoryItem).where(
-            InventoryItem.user_id == user_id,
-            InventoryItem.stock <= InventoryItem.min_stock
-        )
-        return session.exec(statement).all()
+        with Session(engine) as session:
+            statement = select(InventoryItem).where(
+                InventoryItem.user_id == user_id,
+                InventoryItem.stock <= InventoryItem.min_stock
+            )
+            return session.exec(statement).all()
+
 
     def generate_image_prompt(self, title: str, description: str) -> str:
         """Generates 3 image prompts for Midjourney/DALL-E."""

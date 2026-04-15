@@ -212,6 +212,34 @@ Se o arquivo estiver vazio ou não contiver vendas válidas, retorne: []"""
         except Exception as e:
             return {"success": False, "message": f"Erro ao deletar: {str(e)}"}
 
+    def clear_all_transactions(self, user_id: int):
+        """Removes all transactions for the user."""
+        try:
+            session = next(get_session())
+            statement = select(Transaction).where(Transaction.user_id == user_id)
+            transactions = session.exec(statement).all()
+            for t in transactions:
+                session.delete(t)
+            session.commit()
+            return {"success": True, "message": "Historico financeiro zerado!"}
+        except Exception as e:
+            return {"success": False, "message": f"Erro ao zerar: {str(e)}"}
+
+    def reset_inventory(self, user_id: int, initial_stock: int = 600):
+        """Resets all inventory items to a fixed initial stock."""
+        try:
+            from core.database.models import InventoryItem
+            session = next(get_session())
+            statement = select(InventoryItem).where(InventoryItem.user_id == user_id)
+            items = session.exec(statement).all()
+            for item in items:
+                item.stock = initial_stock
+                session.add(item)
+            session.commit()
+            return {"success": True, "message": f"Estoque fisico resetado para {initial_stock} unidades!"}
+        except Exception as e:
+            return {"success": False, "message": f"Erro ao resetar estoque: {str(e)}"}
+
     def update_transaction(self, transaction_id: int, updates: Dict[str, Any]):
         """Updates a transaction."""
         try:

@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(C:\\Users\\pedro\\.gemini\\antigravity\\brain/**)",
+      "Bash(d *)",
+      "Bash(@echo *)",
+      "Bash(dir *)",
+      "Bash(echo.)",
+      "Bash(type *)",
+      "Bash(f *)",
+      "Bash(\"09c7faeb-aadc-4884-90fe-4cf505b58ec0\" *)",
+      "Bash(do *)",
+      "Bash(xcopy *)"
+    ]
+  },
+  "$version": 3
+}

@@ -115,60 +115,41 @@ def main():
                 st.success("✅ Todos os itens do inventário estão com estoque saudável.")
 
     with tab2:
-        st.header("Guardiao Financeiro")
+        st.header("Tesouraria Real 🛡️")
         
+        # Carregar Estatísticas e Produtos
+        analysis = finance_agent.analyze_health(user.id)
+        stats = analysis["stats"]
+        all_transactions = [{"ID": t.id, "Data": t.date, "Desc": t.description, "Valor": t.amount, "Tipo": t.type, "Categoria": t.category} for t in stats["raw_data"]]
+        df_all = pd.DataFrame(all_transactions)
         
-        # Real Analysis - Always Run (Top Priority)
-        with st.container():
-            analysis = finance_agent.analyze_health(user.id)
-            stats = analysis["stats"]
-            
-            # KPIs
+        # Carregar produtos para os dropdowns
+        from agents.product_agent import ProductAgent
+        if 'pa_fin' not in st.session_state: st.session_state.pa_fin = ProductAgent()
+        products_list = st.session_state.pa_fin.get_all_products(user.id)
+        sub_tab_dash, sub_tab_venda, sub_tab_gasto, sub_tab_upload = st.tabs([
+            "📊 Resumo Geral", "💰 Registrar Venda", "💸 Despesas", "📂 Importar Dados"
+        ])
+
+        with sub_tab_dash:
+            # KPIs Principais
             k1, k2, k3 = st.columns(3)
-            k1.metric("Faturamento", f"R$ {stats['total_revenue']:.2f}")
-            k2.metric("Custos", f"R$ {stats['total_expenses']:.2f}")
-            k3.metric("Lucro Liquido", f"R$ {stats['net_profit']:.2f}", delta=f"{stats['margin']:.1f}% Margem")
-            
-            # Prepare Data
-            all_transactions = [{"Data": t.date, "Desc": t.description, "Valor": t.amount, "Tipo": t.type} for t in stats["raw_data"]]
-            df_all = pd.DataFrame(all_transactions)
+            k1.metric("Fat. Bruto", f"R$ {stats['total_revenue']:.2f}")
+            k2.metric("Saídas (Custos/Ads)", f"R$ {stats['total_expenses']:.2f}")
+            k3.metric("Lucro Real", f"R$ {stats['net_profit']:.2f}", delta=f"{stats['margin']:.1f}% Margem")
             
             if not df_all.empty:
-                # 1. Chart: Monthly Comparison (Revenue vs Expenses)
-                st.subheader("Comparativo Financeiro")
-                df_all['Mes'] = pd.to_datetime(df_all['Data']).dt.strftime('%Y-%m') # Sortable format
-                
-                # Group by Month and Type
+                st.subheader("Evolução Mensal")
+                df_all['Mes'] = pd.to_datetime(df_all['Data']).dt.strftime('%Y-%m')
                 chart_data = df_all.groupby(['Mes', 'Tipo'])['Valor'].sum().unstack().fillna(0)
-                
-                # Colors: dynamically match columns present
                 color_map = {"EXPENSE": "#ff4b4b", "INCOME": "#4bceac"}
                 chart_colors = [color_map[col] for col in chart_data.columns if col in color_map]
-                if chart_colors:
-                    st.bar_chart(chart_data, color=chart_colors)
-                else:
-                    st.bar_chart(chart_data)
+                st.bar_chart(chart_data, color=chart_colors)
 
-                # 2. Last 10 Transactions (Always Open)
-                st.subheader("Ultimas 10 Transacoes")
-                # Sort by Date Descending
-                df_sorted = df_all.sort_values(by="Data", ascending=False)
-                st.dataframe(
-                    df_sorted.head(10).style.format({"Valor": "R$ {:.2f}"}), 
-                    width="stretch",
-                    hide_index=True
-                )
-
-                # 3. Full History & Management (Closed Dropdown)
-                with st.expander("Gerenciar Historico (Editar/Excluir)"):
-                    # We need the ID to update/delete
+                with st.expander("📝 Gerenciar Histórico de Transações"):
                     all_transactions_with_id = [{"ID": t.id, "Data": t.date, "Desc": t.description, "Valor": t.amount, "Tipo": t.type, "Categoria": t.category} for t in stats["raw_data"]]
-                    df_edit = pd.DataFrame(all_transactions_with_id)
+                    df_edit = pd.DataFrame(all_transactions_with_id).sort_values(by="Data", ascending=False)
                     
-                    # Sort by Date Descending for display
-                    df_edit = df_edit.sort_values(by="Data", ascending=False)
-                    
-                    # Editable Dataframe
                     edited_df = st.data_editor(
                         df_edit,
                         column_config={
@@ -178,304 +159,146 @@ def main():
                             "Tipo": st.column_config.SelectboxColumn("Tipo", options=["INCOME", "EXPENSE"]),
                             "Categoria": st.column_config.SelectboxColumn("Categoria", options=["Sale", "Ads", "Custo Produto", "Assinatura", "Outros"]),
                         },
-                        hide_index=True,
-                        num_rows="dynamic", # Allows adding/deleting rows
-                        key="transaction_editor",
-                        width="stretch"
+                        hide_index=True, num_rows="dynamic", key="transaction_editor", use_container_width=True
                     )
                     
-                    # Control Buttons
-                    b1, b2, b3, b4 = st.columns(4)
-                    
-                    # 1. Save
-                    if b1.button("Salvar", type="primary", width="stretch"):
-                        # Identify Changes
-                        # 1. Deletions (Rows present in original but missing in edited)
+                    if st.button("Salvar Alterações", type="primary"):
                         original_ids = set(df_edit["ID"])
-                        edited_ids = set(edited_df["ID"].dropna()) # dropna for new rows which might have NaN ID
-                        
-                        ids_to_delete = original_ids - edited_ids
-                        
-                        changes_log = []
-                        
-                        # Process Deletions
-                        for txn_id in ids_to_delete:
-                            res = finance_agent.delete_transaction(int(txn_id))
-                            if res["success"]:
-                                changes_log.append(f"ID {txn_id}: Deletado")
-                        
-                        # Process Updates (Rows with same ID but different content)
-                        # We iterate over edited_df where ID exists
+                        edited_ids = set(edited_df["ID"].dropna())
+                        for txn_id in (original_ids - edited_ids): finance_agent.delete_transaction(int(txn_id))
                         for index, row in edited_df.iterrows():
                             txn_id = row.get("ID")
-                            
                             if pd.notna(txn_id):
-                                # Check if changed
                                 original_row = df_edit[df_edit["ID"] == txn_id].iloc[0]
-                                
-                                # Compare fields
                                 updates = {}
                                 if row["Desc"] != original_row["Desc"]: updates["description"] = row["Desc"]
                                 if row["Valor"] != original_row["Valor"]: updates["amount"] = float(row["Valor"])
                                 if row["Tipo"] != original_row["Tipo"]: updates["type"] = row["Tipo"]
                                 if row["Categoria"] != original_row["Categoria"]: updates["category"] = row["Categoria"]
-                                # Date comparison (careful with types)
                                 if pd.to_datetime(row["Data"]) != pd.to_datetime(original_row["Data"]): updates["date"] = pd.to_datetime(row["Data"])
+                                if updates: finance_agent.update_transaction(int(txn_id), updates)
+                        st.success("Financeiro atualizado com sucesso!"); st.rerun()
 
-                                if updates:
-                                    res = finance_agent.update_transaction(int(txn_id), updates)
-                                    if res["success"]:
-                                        changes_log.append(f"ID {txn_id}: Atualizado")
-
-                        if changes_log:
-                            st.success(f"Alteracoes salvas:\n" + "\n".join(changes_log))
-                            st.rerun()
-                        else:
-                            st.info("Nenhuma alteracao detectada.")
-
-                    # 2. Undo
-                    if b2.button("Desfazer", width="stretch"):
-                        st.toast("Dica: Use **Ctrl+Z** (ou Cmd+Z) dentro da tabela para desfazer!")
-
-                    # 3. Redo
-                    if b3.button("Refazer", width="stretch"):
-                        st.toast("Dica: Use **Ctrl+Shift+Z** dentro da tabela para refazer!")
-                    
-                    # 4. Restore (Discard Changes)
-                    if b4.button("Restaurar", width="stretch"):
-                        st.rerun()
-
-                # Deep Analysis Button
                 st.divider()
-                if st.button("Analise Profunda do Guardiao", width="stretch"):
-                    with st.spinner("O Guardiao esta analisando cada centavo do seu cofre..."):
+                if st.button("🪄 Gerar Insights de Negócio (IA)", use_container_width=True):
+                    with st.spinner("Analisando padrões financeiros..."):
                         report = finance_agent.generate_deep_analysis(user.id)
-                        
-                        with st.expander("Relatorio Estrategico do CFO", expanded=True):
-                            st.markdown(report)
-            
-        st.divider()
+                        st.markdown(report)
 
-        # =====================================================
-        # INCOME & EXPENSE FORMS (Redesigned)
-        # =====================================================
-        col_in, col_mid, col_out = st.columns(3)
-        
-        # --- COLUMN 1: Upload CSV/XLSX (LLM-Powered, 2-Phase) ---
-        with col_in:
-            st.subheader("Receitas (Upload)")
-            st.caption("Relatorio Shopee ou CSV de vendas")
-            uploaded_file = st.file_uploader("Arquivo", type=["csv", "xlsx"], label_visibility="collapsed", key="income_upload")
+                with st.expander("⛔ Zona de Perigo"):
+                    st.warning("Estas ações NÃO podem ser desfeitas.")
+                    col_z1, col_z2 = st.columns(2)
+                    if col_z1.button("Zerar Vendas/Histórico 🗑️", use_container_width=True):
+                        res = finance_agent.clear_all_transactions(user.id)
+                        if res["success"]: st.toast(res["message"]); st.rerun()
+                    if col_z2.button("Resetar Estoque (600 un.) 🔄", use_container_width=True):
+                        res = finance_agent.reset_inventory(user.id)
+                        if res["success"]: st.toast(res["message"]); st.rerun()
+
+        with sub_tab_venda:
+            st.subheader("💰 Registrar Venda Manual")
+            st.info("Utilize este formulário para registrar vendas que não foram importadas automaticamente. O estoque será abatido proporcionalmente.")
             
-            if uploaded_file:
-                if st.button("Processar com IA", type="primary", key="btn_process_upload"):
-                    with st.spinner("A IA esta interpretando seu arquivo..."):
+            # Produtos disponíveis
+            if products_list:
+                product_names = [p.title for p in products_list]
+                product_map = {p.title: p for p in products_list}
+                
+                with st.form("income_form_new"):
+                    v_p_choice = st.selectbox("Selecione o Anúncio", product_names)
+                    v_p_obj = product_map[v_p_choice]
+                    
+                    st.caption(f"Valor de Tabela: R$ {v_p_obj.price:.2f}")
+                    
+                    vc1, vc2 = st.columns(2)
+                    v_val = vc1.number_input(
+                        "Valor Líquido Recebido (R$)", 
+                        min_value=0.0, 
+                        value=0.0, 
+                        step=0.01, 
+                        format="%.2f",
+                        help="Digite o valor exato que você recebeu por esta venda."
+                    )
+                    v_qty = vc2.number_input("Quantidade Vendida", min_value=1, step=1, value=1)
+                    v_date = st.date_input("Data da Venda")
+                    
+                    if st.form_submit_button("Confirmar Venda e Abater Estoque", type="primary"):
+                        res = finance_agent.add_transaction(
+                            date=v_date, description=v_p_choice, amount=v_val,
+                            category="Sale", type="INCOME", user_id=user.id,
+                            product_id=v_p_obj.id, quantity=v_qty
+                        )
+                        if res["success"]:
+                            st.success(f"Venda de {v_qty}x '{v_p_choice}' registrada! Estoque abatido.")
+                            st.rerun()
+                        else: st.error(res["message"])
+            else:
+                st.warning("Nenhum anúncio encontrado. Cadastre seus anúncios na aba 'Gestão de Anúncios'.")
+
+        with sub_tab_gasto:
+            st.subheader("💸 Registro de Despesas")
+            with st.form("expense_form_new"):
+                d_date = st.date_input("Data da Despesa")
+                d_desc = st.text_input("Descrição", placeholder="Ex: Google Ads, Aluguel, Embalagens")
+                dc1, dc2 = st.columns(2)
+                d_val = dc1.number_input("Valor (R$)", min_value=0.01, step=10.0)
+                d_cat = dc2.selectbox("Categoria", ["Ads", "Custo Produto", "Assinatura", "Outros"])
+                
+                if st.form_submit_button("Salvar Despesa", type="primary"):
+                    res = finance_agent.add_transaction(
+                        date=d_date, description=d_desc, amount=d_val,
+                        category=d_cat, type="EXPENSE", user_id=user.id
+                    )
+                    if res["success"]:
+                        st.success("Gasto registrado com sucesso!"); st.rerun()
+                    else: st.error(res["message"])
+
+        with sub_tab_upload:
+            st.subheader("📂 Importar Planilha de Vendas")
+            st.markdown("Suba o arquivo XML/XLSX da Shopee ou um CSV próprio. Nossa IA irá processar os dados e vincular aos anúncios.")
+            
+            uploaded_file = st.file_uploader("Arraste o arquivo aqui", type=["csv", "xlsx"], key="income_upload_new")
+            
+            if uploaded_file and "upload_preview" not in st.session_state:
+                if st.button("Processar com IA", type="primary"):
+                    with st.spinner("Interpretando dados da planilha..."):
                         result = finance_agent.process_upload(uploaded_file, user.id)
                         if result["success"]:
                             st.session_state["upload_preview"] = result["data"]
-                            st.session_state["upload_message"] = result["message"]
                             st.rerun()
-                        else:
-                            st.error(result["message"])
-                            if "raw_response" in result:
-                                with st.expander("Resposta bruta da IA"):
-                                    st.text(result["raw_response"])
+                        else: st.error(result["message"])
             
-            # Show preview if exists
-            if "upload_preview" in st.session_state and st.session_state["upload_preview"]:
-                preview_data = st.session_state["upload_preview"]
-                st.info(st.session_state.get("upload_message", ""))
-                
-                df_preview = pd.DataFrame(preview_data)
-                edited_preview = st.data_editor(
-                    df_preview,
-                    column_config={
-                        "date": st.column_config.DateColumn("Data"),
-                        "product": st.column_config.TextColumn("Produto"),
-                        "amount": st.column_config.NumberColumn("Valor", format="R$ %.2f"),
-                        "quantity": st.column_config.NumberColumn("Qtd"),
-                        "status": st.column_config.TextColumn("Status"),
-                    },
-                    hide_index=True,
-                    num_rows="dynamic",
-                    key="upload_preview_editor",
-                    use_container_width=True
-                )
+            if "upload_preview" in st.session_state:
+                st.info("Revise as transações identificadas pela IA antes de salvar.")
+                df_preview = pd.DataFrame(st.session_state["upload_preview"])
+                edited_preview = st.data_editor(df_preview, use_container_width=True, hide_index=True)
                 
                 cp1, cp2 = st.columns(2)
-                if cp1.button("Confirmar e Salvar", type="primary", key="btn_confirm_upload", use_container_width=True):
-                    # Convert edited dataframe back to list of dicts
+                if cp1.button("Confirmar Tudo e Abater Estoques", type="primary", use_container_width=True):
                     confirmed_data = edited_preview.to_dict(orient="records")
-                    with st.spinner("Salvando transacoes e atualizando estoques..."):
-                        confirm_result = finance_agent.confirm_upload(confirmed_data, user.id)
-                        if confirm_result["success"]:
-                            msg_parts = [f"Total: {confirm_result['total']}"]
-                            msg_parts.append(f"Vinculados: {confirm_result['matched_count']}")
-                            if confirm_result['duplicated_count'] > 0:
-                                msg_parts.append(f"Duplicados (ignorados): {confirm_result['duplicated_count']}")
-                            if confirm_result['unmatched_count'] > 0:
-                                msg_parts.append(f"Nao encontrados: {confirm_result['unmatched_count']}")
-                            
-                            st.success(" | ".join(msg_parts))
-                            
-                            # Store unmatched for resolution
-                            if confirm_result["unmatched"]:
-                                st.session_state["unmatched_products"] = confirm_result["unmatched"]
-                            
-                            # Clear preview
-                            del st.session_state["upload_preview"]
-                            if "upload_message" in st.session_state:
-                                del st.session_state["upload_message"]
-                            st.rerun()
-                        else:
-                            st.error(confirm_result["message"])
-                
-                if cp2.button("Descartar", key="btn_discard_upload", use_container_width=True):
-                    del st.session_state["upload_preview"]
-                    if "upload_message" in st.session_state:
-                        del st.session_state["upload_message"]
-                    st.rerun()
-        
-        # --- COLUMN 2: Manual Income Form (NEW) ---
-        with col_mid:
-            st.subheader("Receitas (Manual)")
-            
-            # Load products for selectbox
-            from agents.product_agent import ProductAgent
-            if 'product_agent_fin' not in st.session_state:
-                st.session_state.product_agent_fin = ProductAgent()
-            
-            products_list = st.session_state.product_agent_fin.get_all_products(user.id)
-            product_names = ["-- Selecione --"] + [p.title for p in products_list] + ["Outro (digitar)"]
-            product_map = {p.title: p.id for p in products_list}
-            
-            with st.form("income_form"):
-                i_date = st.date_input("Data", key="inc_date")
-                i_product_choice = st.selectbox("Produto", product_names, key="inc_product")
-                i_desc_manual = st.text_input("Descricao (se 'Outro')", placeholder="Nome do produto", key="inc_desc")
-                
-                ic1, ic2 = st.columns(2)
-                i_val = ic1.number_input("Valor (R$)", min_value=0.01, step=10.0, key="inc_val")
-                i_qty = ic2.number_input("Quantidade", min_value=1, step=1, value=1, key="inc_qty")
-                
-                if st.form_submit_button("Registrar Venda"):
-                    # Determine product_id and description
-                    selected_product_id = None
-                    description = i_desc_manual
-                    
-                    if i_product_choice != "-- Selecione --" and i_product_choice != "Outro (digitar)":
-                        selected_product_id = product_map.get(i_product_choice)
-                        description = i_product_choice
-                    elif i_product_choice == "-- Selecione --":
-                        st.warning("Selecione um produto ou escolha 'Outro'.")
-                        st.stop()
-                    
-                    if not description:
-                        st.warning("Preencha a descricao do produto.")
-                        st.stop()
-                    
-                    res = finance_agent.add_transaction(
-                        date=i_date,
-                        description=description,
-                        amount=i_val,
-                        category="Sale",
-                        type="INCOME",
-                        user_id=user.id,
-                        product_id=selected_product_id,
-                        quantity=i_qty
-                    )
-                    if res["success"]:
-                        if res.get("stock_updated"):
-                            st.success(f"Venda registrada! Estoque atualizado.")
-                        else:
-                            st.success("Venda registrada (sem produto vinculado ao estoque).")
+                    confirm_result = finance_agent.confirm_upload(confirmed_data, user.id)
+                    if confirm_result["success"]:
+                        st.success(f"Sucesso! {confirm_result['matched_count']} vendas vinculadas e processadas."); del st.session_state["upload_preview"]
+                        if confirm_result["unmatched"]: st.session_state["unmatched_products"] = confirm_result["unmatched"]
                         st.rerun()
-                    else:
-                        st.error(res["message"])
+                if cp2.button("Descartar", use_container_width=True):
+                    del st.session_state["upload_preview"]; st.rerun()
 
-        # --- COLUMN 3: Expense Form (Existing) ---
-        with col_out:
-            st.subheader("Despesas (Manual)")
-            with st.form("expense_form"):
-                d_date = st.date_input("Data")
-                d_desc = st.text_input("Descricao", placeholder="Ex: Assinatura, Google Ads")
-                d_val = st.number_input("Valor (R$)", min_value=0.01, step=10.0)
-                d_cat = st.selectbox("Categoria", ["Ads", "Custo Produto", "Assinatura", "Outros"])
-                
-                if st.form_submit_button("Registrar Gasto"):
-                    res = finance_agent.add_transaction(
-                        date=d_date,
-                        description=d_desc,
-                        amount=d_val,
-                        category=d_cat,
-                        type="EXPENSE",
-                        user_id=user.id
-                    )
-                    if res["success"]:
-                        st.success("Registrado!")
-                        st.rerun()
-                    else:
-                        st.error(res["message"])
-
-        # =====================================================
-        # UNMATCHED PRODUCTS RESOLUTION PANEL
-        # =====================================================
+        # Resolução de Itens não Encontrados (Persistent ao final da aba Financeiro)
         if "unmatched_products" in st.session_state and st.session_state["unmatched_products"]:
             st.divider()
-            st.subheader("Produtos Nao Encontrados")
-            st.caption("Estas vendas foram salvas no financeiro, mas nao foram vinculadas a nenhum produto. Escolha o que fazer:")
+            st.subheader("⚠️ Vendas não Vinculadas")
+            st.caption("Os itens abaixo foram registrados no financeiro, mas não encontramos anúncios correspondentes para abater o estoque.")
             
             unmatched = st.session_state["unmatched_products"]
-            items_to_remove = []
-            
             for idx, item in enumerate(unmatched):
                 with st.container(border=True):
-                    uc1, uc2, uc3, uc4 = st.columns([3, 1, 1, 1])
-                    uc1.markdown(f"**{item['description']}** - R$ {item['amount']:.2f} (Qtd: {item.get('quantity', 1)})")
-                    
-                    if uc2.button("Ignorar", key=f"ignore_{idx}", use_container_width=True):
-                        items_to_remove.append(idx)
-                    
-                    if uc3.button("+ SKU", key=f"add_sku_{idx}", use_container_width=True):
-                        # Create a new Product (SKU Virtual)
-                        from agents.product_agent import ProductAgent
-                        pa = ProductAgent()
-                        save_res = pa.save_product({
-                            "title": item["description"],
-                            "description": "Criado automaticamente via venda nao mapeada",
-                            "price": float(item["amount"]),
-                            "stock": max(100 - int(item.get("quantity", 1)), 0),
-                            "initial_stock": 100
-                        }, user.id)
-                        if save_res["success"]:
-                            st.success(f"SKU '{item['description']}' criado!")
-                            items_to_remove.append(idx)
-                        else:
-                            st.error(f"Erro: {save_res.get('message', 'Desconhecido')}")
-
-                    if uc4.button("+ Inventario", key=f"add_inv_{idx}", use_container_width=True):
-                        # Create a new InventoryItem
-                        from core.database.models import InventoryItem
-                        session = next(get_session())
-                        new_item = InventoryItem(
-                            name=item["description"], 
-                            supplier_price=0.0, 
-                            stock=0, 
-                            initial_stock=0, 
-                            user_id=user.id
-                        )
-                        session.add(new_item)
-                        session.commit()
-                        st.success(f"Item '{item['description']}' adicionado ao inventario!")
-                        items_to_remove.append(idx)
-            
-            # Remove resolved items
-            if items_to_remove:
-                remaining = [item for i, item in enumerate(unmatched) if i not in items_to_remove]
-                if remaining:
-                    st.session_state["unmatched_products"] = remaining
-                else:
-                    del st.session_state["unmatched_products"]
+                    col_u1, col_u2 = st.columns([3, 1])
+                    col_u1.write(f"**{item['description']}** | R$ {item['amount']:.2f} (Qtd: {item.get('quantity', 1)})")
+                    if col_u2.button("Ignorar", key=f"ign_{idx}", use_container_width=True):
+                        st.session_state["unmatched_products"].pop(idx); st.rerun()
+            if not st.session_state["unmatched_products"]:
+                del st.session_state["unmatched_products"]
                 st.rerun()
 
 
@@ -604,40 +427,65 @@ def main():
             )
         ).all()
         
-        # Mapa: product_id -> soma de receita real recebida
+        # Mapa: product_id -> soma de receita e soma de quantidade vendida
         receita_por_produto = {}
+        vendas_por_produto = {}
         for txn in income_transactions:
             if txn.product_id:
                 receita_por_produto[txn.product_id] = receita_por_produto.get(txn.product_id, 0.0) + txn.amount
+                vendas_por_produto[txn.product_id] = vendas_por_produto.get(txn.product_id, 0) + (txn.quantity or 1)
+
 
         if products:
             for p in products:
                 base_name = re.sub(r' - \d+x$', '', p.title.strip()).strip()
-                pkgs_sold = (p.initial_stock or 100) - p.stock
-                if pkgs_sold < 0: pkgs_sold = 0
+                
+                # Quantidade vendida agora vem das transações
+                pkgs_sold = vendas_por_produto.get(p.id, 0)
                 
                 total_variantes_vendidas += pkgs_sold
                 ad_potes_sold = 0
                 ad_cogs = 0.0
+                ad_stock_kits = 0
+                unit_cogs = 0.0
                 
                 if hasattr(p, 'components') and p.components:
+                    # O estoque do kit é limitado pelo item físico com menor disponibilidade proporcional
+                    kit_capacity = []
                     for comp in p.components:
                         inv_item = next((i for i in inventory_items if i.id == comp.inventory_item_id), None)
-                        qty = comp.quantity or 1
-                        item_units = pkgs_sold * qty
-                        item_cogs = item_units * (inv_item.supplier_price if inv_item else 0.0)
-                        ad_potes_sold += item_units
-                        ad_cogs += item_cogs
-                        if comp.inventory_item_id in vendidos_por_item:
-                            vendidos_por_item[comp.inventory_item_id] += item_units
+                        if inv_item:
+                            qty_per_kit = comp.quantity or 1
+                            item_units_sold = pkgs_sold * qty_per_kit
+                            item_cogs = item_units_sold * (inv_item.supplier_price or 0.0)
+                            
+                            ad_potes_sold += item_units_sold
+                            ad_cogs += item_cogs
+                            unit_cogs += qty_per_kit * (inv_item.supplier_price or 0.0)
+                            
+                            # Calcular capacidade baseada no estoque físico atual
+                            kit_capacity.append(inv_item.stock // qty_per_kit)
+                            
+                            if comp.inventory_item_id in vendidos_por_item:
+                                vendidos_por_item[comp.inventory_item_id] += item_units_sold
+                    
+                    ad_stock_kits = min(kit_capacity) if kit_capacity else 0
                 else:
+                    # Fallback caso não tenha componentes mapeados
                     ad_potes_sold = pkgs_sold
                     ad_cogs = pkgs_sold * (p.supplier_price or 0.0)
+                    unit_cogs = p.supplier_price or 0.0
+                    ad_stock_kits = p.stock
 
                 # Receita real deste produto (do financeiro)
                 ad_receita = receita_por_produto.get(p.id, 0.0)
                 ad_lucro = ad_receita - ad_cogs
                 ad_margem = (ad_lucro / ad_receita * 100) if ad_receita > 0 else 0.0
+                
+                # Margem Estimada baseada no preço de tabela e custo unitário
+                potential_profit = (p.price or 0.0) - unit_cogs
+                potential_margin = (potential_profit / p.price * 100) if p.price and p.price > 0 else 0.0
+
 
                 if base_name not in product_groups:
                     product_groups[base_name] = {"units": 0, "cogs": 0.0, "receita": 0.0, "lucro": 0.0, "variations": []}
@@ -647,10 +495,12 @@ def main():
                 product_groups[base_name]["receita"] += ad_receita
                 product_groups[base_name]["lucro"] += ad_lucro
                 product_groups[base_name]["variations"].append({
-                    "id": p.id, "title": p.title, "pkgs": pkgs_sold, "stock": p.stock, 
+                    "id": p.id, "title": p.title, "pkgs": pkgs_sold, "stock": ad_stock_kits, 
                     "units": ad_potes_sold, "cogs": ad_cogs, "receita": ad_receita,
-                    "lucro": ad_lucro, "margem": ad_margem, "preco_tabela": p.price
+                    "lucro": ad_lucro, "margem": ad_margem, "preco_tabela": p.price,
+                    "unit_cogs": unit_cogs, "potential_margin": potential_margin
                 })
+
                 total_potes_vendidos += ad_potes_sold
                 total_cogs_vendas += ad_cogs
                 total_receita_real += ad_receita
@@ -698,33 +548,49 @@ def main():
                             n = m.group(1) if m else "1"
                             txt = f"{n} Frasco" if n == "1" else f"{n} Frascos"
                             
-                            # Calcular variação de preço: tabela vs real
+                            # Preços e Margens
                             preco_tabela = v.get('preco_tabela', 0)
+                            unit_cogs = v.get('unit_cogs', 0)
                             receita_v = v.get('receita', 0)
                             pkgs_v = v.get('pkgs', 0)
-                            preco_medio_real = (receita_v / pkgs_v) if pkgs_v > 0 else 0
-                            desconto_pct = ((preco_tabela - preco_medio_real) / preco_tabela * 100) if preco_tabela > 0 and preco_medio_real > 0 else 0
                             
-                            margem_v = v.get('margem', 0)
-                            margem_v_color = '#4CAF50' if margem_v >= 20 else ('#FF9800' if margem_v >= 10 else '#F44336')
-                            
-                            # Linha de info com receita real e margem
-                            receita_info = ""
-                            if receita_v > 0:
-                                receita_info = f"""&nbsp;|&nbsp; Receita: <b>R$ {receita_v:,.2f}</b>
-                                    &nbsp;|&nbsp; <span style='color: {margem_v_color};'>Margem: {margem_v:.1f}%</span>"""
-                                if desconto_pct > 0:
-                                    receita_info += f""" &nbsp;|&nbsp; <span style='color: #9E9E9E;'>Desc: -{desconto_pct:.0f}%</span>"""
-                            
+                            # Info de Venda Real
+                            if pkgs_v > 0:
+                                preco_medio_real = receita_v / pkgs_v
+                                margem_v = v.get('margem', 0)
+                                margem_color = '#4CAF50' if margem_v >= 20 else ('#FF9800' if margem_v >= 10 else '#F44336')
+                                
+                                desconto_pct = ((preco_tabela - preco_medio_real) / preco_tabela * 100) if preco_tabela > 0 else 0
+                                desc_html = f" <span style='color: #9E9E9E; font-size: 0.8em;'>(-{desconto_pct:.0f}%)</span>" if desconto_pct > 2 else ""
+                                
+                                result_info = (
+                                    f"<span style='color: #4CAF50;'>{pkgs_v} vendidos</span> &nbsp;|&nbsp; "
+                                    f"Venda Média: <b>R$ {preco_medio_real:,.2f}</b>{desc_html} &nbsp;|&nbsp; "
+                                    f"<span style='color: {margem_color}; font-weight: bold;'>Margem Real: {margem_v:.1f}%</span>"
+                                )
+                            else:
+                                # Info Estimada (Potencial)
+                                p_margem = v.get('potential_margin', 0)
+                                p_color = '#81C784' if p_margem >= 20 else ('#FFB74D' if p_margem >= 10 else '#E57373')
+                                result_info = (
+                                    f"<span style='color: #9E9E9E;'>Sem vendas</span> &nbsp;|&nbsp; "
+                                    f"<span style='color: {p_color}; opacity: 0.8;'>Margem Est.: {p_margem:.1f}%</span>"
+                                )
+
                             st.markdown(f"""
-                                <div style='display: flex; justify-content: space-between; border-bottom: 1px solid #ffffff1e; padding: 5px 0; flex-wrap: wrap;'>
-                                    <span>Variação: <b>{txt}</b></span>
-                                    <span>
-                                        <span style='color: #4CAF50;'>{v['pkgs']} kits</span> &nbsp;|&nbsp; Stock: {v['stock']} &nbsp;|&nbsp; <span style='color: #F44336;'>Custo: R$ {v['cogs']:,.2f}</span>
-                                        {receita_info}
-                                    </span>
-                                </div>
-                            """, unsafe_allow_html=True)
+<div style='display: flex; justify-content: space-between; border-bottom: 1px solid #ffffff1e; padding: 8px 0; flex-wrap: wrap; align-items: center;'>
+<div style='flex: 1; min-width: 150px;'>
+<span style='font-size: 0.9em; color: #9E9E9E;'>{v['title']}</span><br>
+<b>{txt}</b> &nbsp;|&nbsp; Tabela: <span style='color: #64B5F6;'>R$ {preco_tabela:,.2f}</span>
+</div>
+<div style='flex: 2; text-align: right; min-width: 250px;'>
+<span style='font-size: 0.85em;'>Estoque: <b>{v['stock']} kits</b></span><br>
+{result_info}
+</div>
+</div>
+""", unsafe_allow_html=True)
+
+
             else:
                 st.info("Nenhum anúncio mapeado.")
                 
@@ -744,7 +610,8 @@ def main():
                     "Potes Vendidos": vendidos_por_item.get(item.id, 0)
                 } for item in inventory_items])
 
-                st.info("💡 O estoque é controlado automaticamente pelo 'E. Shopee' nos SKUs Virtuais abaixo.")
+                st.info("💡 O estoque é controlado centralmente pelo **Estoque de Potes Físicos**. Os anúncios virtuais (Shopee) apenas refletem essa disponibilidade.")
+
 
  
                 
@@ -770,36 +637,41 @@ def main():
                     st.rerun()
             
             with st.expander("➕ Novo Item Físico"):
-                col_i1, col_i2 = st.columns(2)
+                col_i1, col_i2, col_i3 = st.columns(3)
                 ni_name = col_i1.text_input("Nome", key="ni_name_inp")
                 ni_cost = col_i2.number_input("Custo", min_value=0.0, key="ni_cost_inp")
+                ni_min = col_i3.number_input("Mínimo", min_value=0, value=5, step=1, key="ni_min_inp")
                 if st.button("Adicionar Item"):
                     from core.database.models import InventoryItem
-                    session = next(get_session()); session.add(InventoryItem(name=ni_name, supplier_price=ni_cost, stock=0, initial_stock=0, user_id=user.id)); session.commit()
+                    with Session(engine) as session:
+                        session.add(InventoryItem(name=ni_name, supplier_price=ni_cost, stock=600, initial_stock=600, min_stock=ni_min, user_id=user.id))
+                        session.commit()
                     st.success("Adicionado!"); st.rerun()
+
 
         st.divider()
         with st.expander("📑 Editor de Anúncios Shopee (SKUs Virtuais)"):
             if products:
-                df_prods = pd.DataFrame([{"ID": p.id, "Título": p.title, "Preço": p.price, "E. Shopee": p.stock} for p in products])
+                df_prods = pd.DataFrame([{"ID": p.id, "Título": p.title, "Preço": p.price} for p in products])
                 edit_ads = st.data_editor(df_prods, column_config={"ID": None}, hide_index=True, use_container_width=True, key="ads_ed")
                 if st.button("Salvar Anúncios"):
                     for _, row in edit_ads.iterrows():
-                        st.session_state.product_agent.update_product(int(row["ID"]), {"title": row["Título"], "price": float(row["Preço"]), "stock": int(row["E. Shopee"])})
+                        product_agent.update_product(int(row["ID"]), {"title": row["Título"], "price": float(row["Preço"])})
                     st.success("Anúncios salvos!"); st.rerun()
+
             else:
                 st.info("Nenhum anúncio para editar.")
             
             with st.expander("➕ Novo SKU Virtual (Manual)"):
-                col_nv1, col_nv2, col_nv3 = st.columns([2, 1, 1])
+                col_nv1, col_nv2 = st.columns([2, 1])
                 nv_title = col_nv1.text_input("Título do Anúncio", key="nv_title_inp")
                 nv_price = col_nv2.number_input("Preço de Venda", min_value=0.0, key="nv_price_inp")
-                nv_stock = col_nv3.number_input("E. Shopee", min_value=0, step=1, key="nv_stock_inp")
                 if st.button("Adicionar SKU Virtual"):
-                    st.session_state.product_agent.save_product({
-                        "title": nv_title, "price": nv_price, "stock": int(nv_stock), "description": "Manual"
+                    product_agent.save_product({
+                        "title": nv_title, "price": nv_price, "description": "Manual", "stock": 0
                     }, user.id)
                     st.success("SKU Virtual adicionado!"); st.rerun()
+
                     
         st.divider()
 
@@ -820,7 +692,7 @@ def main():
                 if st.button("Gerar Anúncio ✨", type="primary", key="btn_manual"):
                     if p_name and p_ben:
                         with st.spinner("🤖 Analisando e criando copy..."):
-                            listing = st.session_state.product_agent.generate_listing(p_name, p_ben, p_ing)
+                            listing = product_agent.generate_listing(p_name, p_ben, p_ing)
                             st.session_state.last_generated_res = listing
                     else:
                         st.warning("Preencha o Nome e os Benefícios.")
@@ -834,7 +706,7 @@ def main():
                     if st.button("Passo 1: Extrair Informações 📸", type="primary"):
                         with st.spinner("Lendo rótulo..."):
                             img_bytes = img_file.getvalue()
-                            info = st.session_state.product_agent.extract_product_info(img_bytes)
+                            info = product_agent.extract_product_info(img_bytes)
                             st.session_state.extracted_info = info
                             if 'last_generated_res' in st.session_state: del st.session_state.last_generated_res
 
@@ -846,7 +718,7 @@ def main():
                     
                     if st.button("Passo 2: Gerar Anúncio Completo (com Busca Web) 🔍", type="primary"):
                         with st.spinner("Pesquisando na internet e criando copy..."):
-                            listing = st.session_state.product_agent.generate_from_extracted_info(edited_info)
+                            listing = product_agent.generate_from_extracted_info(edited_info)
                             st.session_state.last_generated_res = listing
                             # Keep extracted_info so they can refine and regenerate if needed, 
                             # but usually we might want to clear it after saving.
@@ -873,7 +745,7 @@ def main():
                         "price": p_price,
                         "stock": p_stock
                     }
-                    save_res = st.session_state.product_agent.save_product(final_data, user.id)
+                    save_res = product_agent.save_product(final_data, user.id)
                     if save_res["success"]:
                         st.success(f"Produto '{edit_title}' salvo com sucesso!")
                         del st.session_state.last_generated_res
@@ -895,8 +767,8 @@ def main():
                     p_id = prod_names[selected_p_title]
                     
                     # 2. Show Current Components
-                    components = st.session_state.product_agent.get_product_components(p_id)
-                    inventory_items_list = st.session_state.product_agent.get_all_inventory_items(user.id)
+                    components = product_agent.get_product_components(p_id)
+                    inventory_items_list = product_agent.get_all_inventory_items(user.id)
                     inv_map = {item.id: item.name for item in inventory_items_list}
                     
                     if components:
@@ -906,7 +778,7 @@ def main():
                             item_name = inv_map.get(comp.inventory_item_id, "Item Desconhecido")
                             c_col1.write(f"🔹 {comp.quantity}x {item_name}")
                             if c_col3.button("Remover", key=f"del_comp_{comp.id}"):
-                                res = st.session_state.product_agent.delete_product_component(comp.id)
+                                res = product_agent.delete_product_component(comp.id)
                                 if res["success"]:
                                     st.toast("Componente removido!")
                                     st.rerun()
@@ -924,7 +796,7 @@ def main():
                         if st.button("Vincular ao Anúncio", type="primary"):
                             if sel_inv_name != "-- Selecione --":
                                 inv_id = inv_names[sel_inv_name]
-                                add_res = st.session_state.product_agent.add_product_component(p_id, inv_id, comp_qty)
+                                add_res = product_agent.add_product_component(p_id, inv_id, comp_qty)
                                 if add_res["success"]:
                                     st.success("Vinculado com sucesso!")
                                     st.rerun()
@@ -949,7 +821,7 @@ def main():
                 if up_file:
                     if st.button("Processar Importação 📥", key="btn_import"):
                         with st.spinner("Importando produtos..."):
-                            imp_res = st.session_state.product_agent.process_csv_import(up_file, user.id)
+                            imp_res = product_agent.process_csv_import(up_file, user.id)
                             if imp_res["success"]:
                                 st.success(f"Sucesso! {imp_res['count']} produtos importados.")
                                 st.rerun()
@@ -959,7 +831,7 @@ def main():
         with col_ie2:
             with st.expander("📤 Exportar para Shopee (CSV)"):
                 st.caption("Selecione os produtos do catálogo para gerar o arquivo de upload.")
-                products_to_export = st.session_state.product_agent.get_all_products(user.id)
+                products_to_export = product_agent.get_all_products(user.id)
                 
                 if products_to_export:
                     df_exp = pd.DataFrame([{
@@ -988,7 +860,7 @@ def main():
                                     "weight": 0.5
                                 })
                             
-                            csv_data = st.session_state.product_agent.generate_mass_upload_csv(export_data)
+                            csv_data = product_agent.generate_mass_upload_csv(export_data)
                             st.download_button("Clique para Download", data=csv_data, file_name="upload_shopee.csv", mime="text/csv")
                         else:
                             st.warning("Selecione itens.")
