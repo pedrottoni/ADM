@@ -1,17 +1,18 @@
-# 🍎 Cupertino Dark — Design System
+# 🚀 ADM Dashdark — Design System
 
-> Tema inspirado no [Cupertino Obsidian Theme](https://community.obsidian.md/themes/cupertino) por Alexis C (sevenaxis) — Best Theme of Obsidian Gems of the Year 2024.
-> Adaptado para Streamlit dashboard do ADM (Shopee Growth Quest).
+> Tema inspirado no Dashdark X dashboard template — dark navy / indigo palette com sidebar navigation hub.
+> Streamlit dashboard do ADM (Shopee Growth Quest).
 
 ---
 
 ## 1. Filosofia
 
-**Fresh. Familiar. Focused.** — Clean typography, refined spacing, iOS-native-inspired components. O tema deve ser **completo no momento da instalação**, sem necessidade de ajustes. Prioriza fluxo e sensação nativa sobre customização.
+**Clean. Data-first. Native feel.** — Tipografia limpa, spacing refinado, componentes que priorizam dados. Navegação lateral como hub principal, inspirada em dashboards SaaS modernos (Dashdark X).
 
-- "Great tools should just work. No rabbit holes. No endless tweaking."
-- "Every option is an invitation to procrastinate."
-- **Menos customização, menos ruído visual.**
+- Navegação na sidebar (radio estilizado como nav items)
+- Cards com bordas sutis, sem glassmorphism pesado
+- Paleta escura mas com contraste limpo
+- Acento indigo (#818CF8) como cor primária de ação
 
 ---
 

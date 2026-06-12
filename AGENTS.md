@@ -20,7 +20,7 @@ Dashboard Streamlit para gestão de loja Shopee (niche saúde/bem-estar/suplemen
 | ↳ `dashboard/components/` | ✅ | Componentes reutilizáveis |
 | **[`scrapers/`](./scrapers/AGENTS.md)** | ✅ | Shopee, Amazon, Enjoei scrapers (Tavily+Firecrawl) |
 | **[`docs/`](./docs/AGENTS.md)** | ✅ | Plano mestre, status do projeto, design system |
-| **[`DESIGN.md`](./DESIGN.md)** | ✅ | Design system Cupertino Dark — paleta, tokens, componentes, regras visuais |
+| **[`DESIGN.md`](./DESIGN.md)** | ✅ | Design system Dashdark — paleta indigo/navy, componentes, navegação lateral |
 | **[`scripts/`](./scripts/AGENTS.md)** | ✅ | Utilitários |
 | **[`data/`](./data/AGENTS.md)** | ✅ | Banco SQLite + dados |
 | **[`tests/`](./tests/AGENTS.md)** | ✅ | (vazio — preparado para testes) |

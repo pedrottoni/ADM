@@ -1,148 +1,283 @@
-/* ═══════════════════════════════════════════════════════
-   Cupertino Dark — Streamlit Theme
-   Inspired by the Cupertino Obsidian theme (Alexis C / sevenaxis)
-   iOS-native look & feel with glassmorphism accents
-   ═══════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════
+   Dashdark X — Streamlit Theme
+   Inspired by Dashdark X dashboard template
+   Dark navy / indigo palette, sidebar navigation hub
+   ═══════════════════════════════════════════════════════════ */
 
-/* ── Root Variables ─────────────────────────────────── */
+/* ── Root Variables ───────────────────────────────────────── */
 :root {
-  --cupertino-bg-primary: #1C1C1E;
-  --cupertino-bg-secondary: #2C2C2E;
-  --cupertino-bg-tertiary: #3A3A3C;
-  --cupertino-text-primary: #FFFFFF;
-  --cupertino-text-secondary: #EBEBF5;
-  --cupertino-text-tertiary: #8E8E93;
-  --cupertino-text-quaternary: #636366;
-  --cupertino-blue: #007AFF;
-  --cupertino-green: #34C759;
-  --cupertino-orange: #FF9500;
-  --cupertino-red: #FF3B30;
-  --cupertino-purple: #AF52DE;
-  --cupertino-separator: rgba(84, 84, 86, 0.65);
-  --cupertino-fill: rgba(120, 120, 128, 0.2);
-  --cupertino-glass-bg: rgba(44, 44, 46, 0.75);
-  --cupertino-glass-border: rgba(255, 255, 255, 0.08);
-  --cupertino-radius-s: 8px;
-  --cupertino-radius-m: 12px;
-  --cupertino-radius-l: 20px;
+  --dx-bg-primary: #0F172A;
+  --dx-bg-secondary: #1E293B;
+  --dx-bg-tertiary: #334155;
+  --dx-sidebar-bg: #0B0F1D;
+  --dx-card-bg: #1E293B;
+  --dx-card-border: rgba(51, 65, 85, 0.6);
+  --dx-indigo: #818CF8;
+  --dx-indigo-hover: #6366F1;
+  --dx-indigo-glow: rgba(129, 140, 248, 0.25);
+  --dx-blue: #3B82F6;
+  --dx-green: #22C55E;
+  --dx-red: #EF4444;
+  --dx-orange: #F59E0B;
+  --dx-text-primary: #F8FAFC;
+  --dx-text-secondary: #94A3B8;
+  --dx-text-tertiary: #64748B;
+  --dx-separator: #334155;
+  --dx-radius-s: 8px;
+  --dx-radius-m: 12px;
+  --dx-nav-active-bg: #1E293B;
+  --dx-nav-hover-bg: rgba(148, 163, 184, 0.08);
+  --dx-nav-active-border: 3px solid var(--dx-indigo);
 }
 
-/* ── Base / App Container ───────────────────────────── */
+/* ── Base ─────────────────────────────────────────────────── */
 .stApp {
-  background: var(--cupertino-bg-primary);
+  background: var(--dx-bg-primary);
 }
 
 .stApp > header {
-  background: var(--cupertino-bg-secondary) !important;
-  border-bottom: 0.5px solid var(--cupertino-separator);
+  background: var(--dx-sidebar-bg) !important;
+  border-bottom: 1px solid var(--dx-separator);
 }
 
-/* ── Typography ─────────────────────────────────────── */
+/* ── Typography ───────────────────────────────────────────── */
 h1, h2, h3, h4, h5, h6 {
   font-weight: 700 !important;
   letter-spacing: -0.02em;
-  color: var(--cupertino-text-primary);
+  color: var(--dx-text-primary) !important;
 }
 
-h1 {
-  font-size: 2rem !important;
-  font-weight: 800 !important;
-  letter-spacing: -0.03em;
-}
+h1 { font-size: 1.75rem !important; }
+h2 { font-size: 1.5rem !important; }
 
 .stMarkdown p {
-  color: var(--cupertino-text-secondary);
+  color: var(--dx-text-secondary);
+  line-height: 1.6;
+}
+
+/* Page subtitle */
+.page-subtitle {
+  color: var(--dx-text-tertiary) !important;
+  font-size: 0.9rem !important;
+  margin-top: -0.5rem !important;
+  margin-bottom: 1.5rem !important;
+}
+
+/* ── SIDEBAR ──────────────────────────────────────────────── */
+section[data-testid="stSidebar"] {
+  background: var(--dx-sidebar-bg) !important;
+  border-right: 1px solid var(--dx-separator);
+  min-width: 260px !important;
+  max-width: 300px !important;
+}
+
+section[data-testid="stSidebar"] > div {
+  padding: 1.25rem 1rem !important;
+}
+
+/* Sidebar Brand */
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 2px;
+}
+.brand-icon {
+  font-size: 1.5rem;
+}
+.brand-name {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--dx-text-primary);
+  letter-spacing: -0.02em;
+}
+.sidebar-subtitle {
+  font-size: 0.75rem;
+  color: var(--dx-text-tertiary);
+  margin-bottom: 0;
+  padding-left: 2.25rem;
+}
+
+/* User Profile */
+.user-profile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.user-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--dx-indigo), var(--dx-blue));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+}
+.user-info {
+  display: flex;
+  flex-direction: column;
+}
+.user-name {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--dx-text-primary);
+}
+.user-level {
+  font-size: 0.8rem;
+  color: var(--dx-text-tertiary);
+}
+
+/* Achievements badge */
+.sidebar-achievements {
+  margin: 8px 0 0;
+}
+.achievement-badge {
+  display: inline-block;
+  background: rgba(129, 140, 248, 0.12);
+  color: var(--dx-indigo);
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 3px 10px;
+  border-radius: 100px;
+}
+
+/* Sidebar section header */
+section[data-testid="stSidebar"] h3 {
+  font-size: 0.7rem !important;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--dx-text-tertiary) !important;
+  font-weight: 600 !important;
+  margin-bottom: 0.5rem !important;
+}
+
+/* ── NAV RADIO (styled as sidebar nav items) ─────────────── */
+section[data-testid="stSidebar"] div[role="radiogroup"] {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border: none;
+  background: transparent;
+}
+
+section[data-testid="stSidebar"] label[data-baseweb="radio"] {
+  display: flex;
+  align-items: center;
+  padding: 10px 16px 10px 12px;
+  border-radius: 0 var(--dx-radius-s) var(--dx-radius-s) 0;
+  margin: 0;
+  margin-left: -16px !important;
+  width: calc(100% + 16px);
+  transition: all 0.15s ease;
+  cursor: pointer;
+  border-left: 3px solid transparent;
+}
+
+/* Hide the native radio circle */
+section[data-testid="stSidebar"] label[data-baseweb="radio"] > div:first-child {
+  display: none !important;
+}
+
+/* Radio text = the nav label */
+section[data-testid="stSidebar"] label[data-baseweb="radio"] span {
+  font-size: 0.875rem !important;
+  font-weight: 400 !important;
+  color: var(--dx-text-secondary) !important;
+  padding: 0 !important;
   line-height: 1.5;
 }
 
-/* ── Sidebar (Frosted Glass) ────────────────────────── */
-section[data-testid="stSidebar"] {
-  background: var(--cupertino-bg-secondary) !important;
-  border-right: 0.5px solid var(--cupertino-separator);
+/* Hover state */
+section[data-testid="stSidebar"] label[data-baseweb="radio"]:hover {
+  background: var(--dx-nav-hover-bg);
+}
+section[data-testid="stSidebar"] label[data-baseweb="radio"]:hover span {
+  color: var(--dx-text-primary) !important;
 }
 
-section[data-testid="stSidebar"] .stMarkdown h3 {
-  color: var(--cupertino-text-tertiary);
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  font-weight: 600 !important;
+/* ACTIVE STATE — left indigo accent + bg */
+section[data-testid="stSidebar"] label[data-baseweb="radio"]:has(
+  input:checked
+) {
+  background: var(--dx-nav-active-bg) !important;
+  border-left: var(--dx-nav-active-border);
 }
-
-section[data-testid="stSidebar"] .stMetric {
-  background: var(--cupertino-glass-bg);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 0.5px solid var(--cupertino-glass-border);
-  border-radius: var(--cupertino-radius-m);
-  padding: 12px 16px;
-}
-
-section[data-testid="stSidebar"] .stProgress > div > div {
-  background: var(--cupertino-blue);
-}
-
-section[data-testid="stSidebar"] .stProgress > div {
-  background: var(--cupertino-fill);
-}
-
-section[data-testid="stSidebar"] hr {
-  border-color: var(--cupertino-separator);
-  margin: 1rem 0;
-}
-
-/* ── Tabs (iOS Segmented Control Style) ─────────────── */
-div[data-testid="stHorizontalBlock"] > div[data-baseweb="tab-list"] {
-  background: var(--cupertino-bg-tertiary);
-  border-radius: var(--cupertino-radius-s);
-  padding: 3px;
-  gap: 2px;
-  border: none;
-}
-
-button[data-baseweb="tab"] {
-  border-radius: 6px !important;
-  background: transparent !important;
-  color: var(--cupertino-text-secondary) !important;
-  font-size: 0.8rem !important;
+section[data-testid="stSidebar"] label[data-baseweb="radio"]:has(
+  input:checked
+) span {
+  color: var(--dx-text-primary) !important;
   font-weight: 500 !important;
-  padding: 6px 14px !important;
+}
+
+/* ── Sidebar divider ─────────────────────────────────────── */
+section[data-testid="stSidebar"] hr {
   border: none !important;
-  transition: all 0.2s cubic-bezier(0.32, 0.72, 0, 1);
+  height: 1px !important;
+  background: var(--dx-separator) !important;
+  margin: 1rem 0 !important;
 }
 
-button[data-baseweb="tab"][aria-selected="true"] {
-  background: var(--cupertino-blue) !important;
-  color: white !important;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+/* ── Sidebar Progress Bar ────────────────────────────────── */
+section[data-testid="stSidebar"] .stProgress > div {
+  background: rgba(148, 163, 184, 0.15) !important;
+  height: 4px !important;
+  border-radius: 100px !important;
+}
+section[data-testid="stSidebar"] .stProgress > div > div {
+  background: var(--dx-indigo) !important;
+  border-radius: 100px !important;
+}
+section[data-testid="stSidebar"] .stProgress label {
+  color: var(--dx-text-tertiary) !important;
+  font-size: 0.75rem !important;
 }
 
-button[data-baseweb="tab"]:hover {
-  color: var(--cupertino-text-primary) !important;
+/* Sidebar toggle label */
+section[data-testid="stSidebar"] label[data-baseweb="toggle"] span {
+  font-size: 0.8rem !important;
+  color: var(--dx-text-secondary) !important;
 }
 
-/* ── Metric Cards (Glassmorphism) ───────────────────── */
+/* Sidebar footer / CTA */
+.sidebar-footer {
+  margin-top: 1rem;
+  text-align: center;
+}
+.sidebar-cta {
+  display: inline-block;
+  background: var(--dx-card-bg);
+  color: var(--dx-text-tertiary);
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 6px 16px;
+  border-radius: var(--dx-radius-s);
+  border: 1px solid var(--dx-separator);
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+.sidebar-cta:hover {
+  background: var(--dx-bg-tertiary);
+  color: var(--dx-indigo);
+}
+
+/* ── KPI Metric Cards ────────────────────────────────────── */
 div[data-testid="metric-container"] {
-  background: var(--cupertino-glass-bg);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 0.5px solid var(--cupertino-glass-border);
-  border-radius: var(--cupertino-radius-m);
-  padding: 16px 20px;
+  background: var(--dx-card-bg);
+  border: 1px solid var(--dx-card-border);
+  border-radius: var(--dx-radius-m);
+  padding: 1.25rem 1.5rem;
   transition: all 0.2s ease;
 }
 
 div[data-testid="metric-container"]:hover {
-  background: rgba(58, 58, 60, 0.8);
-  border-color: rgba(255, 255, 255, 0.12);
-}
-
-div[data-testid="metric-container"] > div {
-  gap: 4px;
+  border-color: var(--dx-indigo);
+  box-shadow: 0 0 0 1px var(--dx-indigo-glow);
 }
 
 div[data-testid="metric-container"] label {
-  color: var(--cupertino-text-tertiary) !important;
+  color: var(--dx-text-tertiary) !important;
   font-size: 0.8rem !important;
   font-weight: 500 !important;
   text-transform: none !important;
@@ -151,7 +286,7 @@ div[data-testid="metric-container"] label {
 div[data-testid="metric-container"] div[data-testid="stMetricValue"] {
   font-size: 1.75rem !important;
   font-weight: 700 !important;
-  color: var(--cupertino-text-primary) !important;
+  color: var(--dx-text-primary) !important;
   letter-spacing: -0.02em;
 }
 
@@ -160,251 +295,213 @@ div[data-testid="metric-container"] div[data-testid="stMetricDelta"] {
   font-weight: 500 !important;
 }
 
-div[data-testid="metric-container"] div[data-testid="stMetricDelta"] svg {
-  display: none;
-}
-
-/* ── Buttons (iOS Style) ────────────────────────────── */
+/* ── Buttons ─────────────────────────────────────────────── */
 .stButton > button {
-  border-radius: var(--cupertino-radius-s) !important;
-  font-weight: 600 !important;
+  border-radius: var(--dx-radius-s) !important;
+  font-weight: 500 !important;
   padding: 8px 20px !important;
   border: none !important;
-  transition: all 0.2s cubic-bezier(0.32, 0.72, 0, 1);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  transition: all 0.15s ease;
 }
 
-.stButton > button[kind="primary"] {
-  background: var(--cupertino-blue) !important;
+.stButton > button[kind="primary"],
+.stButton > button:has(div:has(p:first-child)):not([kind="secondary"]) {
+  background: var(--dx-indigo) !important;
   color: white !important;
+  border: none !important;
 }
-
 .stButton > button[kind="primary"]:hover {
-  background: #0056CC !important;
-  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.4);
+  background: var(--dx-indigo-hover) !important;
+  box-shadow: 0 4px 12px var(--dx-indigo-glow);
   transform: translateY(-1px);
 }
 
-.stButton > button[kind="primary"]:active {
-  transform: translateY(0);
-  background: #004999 !important;
-}
-
 .stButton > button[kind="secondary"] {
-  background: var(--cupertino-bg-tertiary) !important;
-  color: var(--cupertino-blue) !important;
-  border: 0.5px solid var(--cupertino-separator) !important;
+  background: transparent !important;
+  color: var(--dx-text-secondary) !important;
+  border: 1px solid var(--dx-separator) !important;
 }
-
 .stButton > button[kind="secondary"]:hover {
-  background: #48484A !important;
-  border-color: var(--cupertino-blue) !important;
+  background: var(--dx-nav-hover-bg) !important;
+  color: var(--dx-text-primary) !important;
+  border-color: var(--dx-text-tertiary) !important;
 }
 
-/* ── Inputs / Text Areas ────────────────────────────── */
+/* ── Inputs / Textareas ──────────────────────────────────── */
 div[data-baseweb="input"] input,
 div[data-baseweb="textarea"] textarea {
-  background: var(--cupertino-bg-tertiary) !important;
-  border: 0.5px solid var(--cupertino-separator) !important;
-  border-radius: var(--cupertino-radius-s) !important;
-  color: var(--cupertino-text-primary) !important;
+  background: var(--dx-bg-secondary) !important;
+  border: 1px solid var(--dx-separator) !important;
+  border-radius: var(--dx-radius-s) !important;
+  color: var(--dx-text-primary) !important;
   font-size: 0.9rem !important;
   padding: 10px 12px !important;
-  transition: border-color 0.2s ease;
+  transition: border-color 0.15s ease;
 }
 
 div[data-baseweb="input"] input:focus,
 div[data-baseweb="textarea"] textarea:focus {
-  border-color: var(--cupertino-blue) !important;
-  box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.2);
+  border-color: var(--dx-indigo) !important;
+  box-shadow: 0 0 0 3px var(--dx-indigo-glow) !important;
 }
 
 div[data-baseweb="input"] input::placeholder,
 div[data-baseweb="textarea"] textarea::placeholder {
-  color: var(--cupertino-text-tertiary);
+  color: var(--dx-text-tertiary);
 }
 
 /* Select / Dropdown */
 div[data-baseweb="select"] > div {
-  background: var(--cupertino-bg-tertiary) !important;
-  border: 0.5px solid var(--cupertino-separator) !important;
-  border-radius: var(--cupertino-radius-s) !important;
+  background: var(--dx-bg-secondary) !important;
+  border: 1px solid var(--dx-separator) !important;
+  border-radius: var(--dx-radius-s) !important;
 }
 
-/* Toggle (iOS Switch) */
-div[data-baseweb="toggle"] {
-  --toggle-width: 48px !important;
-  --toggle-height: 28px !important;
-}
-
+/* ── Toggle (iOS Switch) ─────────────────────────────────── */
 div[data-baseweb="toggle"] > div {
-  background: var(--cupertino-fill) !important;
+  background: var(--dx-bg-tertiary) !important;
   border: none !important;
   transition: background 0.2s ease;
 }
-
 div[data-baseweb="toggle"][aria-checked="true"] > div {
-  background: var(--cupertino-green) !important;
+  background: var(--dx-indigo) !important;
 }
-
 div[data-baseweb="toggle"] > div > div {
   background: white !important;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-  transform: scale(0.9);
 }
 
-/* ── Expanders ──────────────────────────────────────── */
+/* ── Expanders ───────────────────────────────────────────── */
 div[data-testid="stExpander"] {
-  background: var(--cupertino-bg-secondary);
-  border: 0.5px solid var(--cupertino-separator);
-  border-radius: var(--cupertino-radius-m);
+  background: var(--dx-bg-secondary);
+  border: 1px solid var(--dx-separator);
+  border-radius: var(--dx-radius-m);
   overflow: hidden;
 }
-
 div[data-testid="stExpander"] > details > summary {
   font-weight: 600;
   padding: 12px 16px;
+  color: var(--dx-text-primary);
 }
-
 div[data-testid="stExpander"] > details > div {
   padding: 0 16px 16px;
 }
 
-/* ── Info / Success / Warning / Error Boxes ─────────── */
-div.stAlert {
-  border-radius: var(--cupertino-radius-s) !important;
+/* ── Info / Success / Warning / Error Boxes ──────────────── */
+.element-container div:has(> .stAlert) > div {
+  border-radius: var(--dx-radius-s) !important;
   border: none !important;
   font-size: 0.9rem !important;
   padding: 12px 16px !important;
 }
 
-div.stAlert[data-baseweb="notification"] {
-  background: var(--cupertino-fill) !important;
-}
-
 .element-container div:has(> .stInfo) > div {
-  background: rgba(0, 122, 255, 0.12) !important;
-  border-left: 3px solid var(--cupertino-blue) !important;
+  background: rgba(59, 130, 246, 0.1) !important;
+  border-left: 3px solid var(--dx-blue) !important;
 }
-
 .element-container div:has(> .stSuccess) > div {
-  background: rgba(52, 199, 89, 0.12) !important;
-  border-left: 3px solid var(--cupertino-green) !important;
+  background: rgba(34, 197, 94, 0.1) !important;
+  border-left: 3px solid var(--dx-green) !important;
 }
-
 .element-container div:has(> .stWarning) > div {
-  background: rgba(255, 149, 0, 0.12) !important;
-  border-left: 3px solid var(--cupertino-orange) !important;
+  background: rgba(245, 158, 11, 0.1) !important;
+  border-left: 3px solid var(--dx-orange) !important;
 }
-
 .element-container div:has(> .stError) > div {
-  background: rgba(255, 59, 48, 0.12) !important;
-  border-left: 3px solid var(--cupertino-red) !important;
+  background: rgba(239, 68, 68, 0.1) !important;
+  border-left: 3px solid var(--dx-red) !important;
 }
 
-/* ── Dividers ───────────────────────────────────────── */
+/* ── Dividers ────────────────────────────────────────────── */
 hr {
   border: none !important;
-  height: 0.5px !important;
-  background: var(--cupertino-separator) !important;
+  height: 1px !important;
+  background: var(--dx-separator) !important;
   margin: 1.5rem 0 !important;
 }
 
-/* ── DataFrames / Tables ────────────────────────────── */
+/* ── DataFrames / Tables ─────────────────────────────────── */
 div[data-testid="stDataFrame"] {
-  border-radius: var(--cupertino-radius-m);
-  border: 0.5px solid var(--cupertino-separator);
+  border-radius: var(--dx-radius-m);
+  border: 1px solid var(--dx-separator);
   overflow: hidden;
 }
-
-div[data-testid="stDataFrame"] table {
-  font-size: 0.85rem !important;
-}
-
 div[data-testid="stDataFrame"] thead tr th {
-  background: var(--cupertino-bg-tertiary) !important;
-  color: var(--cupertino-text-secondary) !important;
+  background: var(--dx-bg-secondary) !important;
+  color: var(--dx-text-secondary) !important;
   font-weight: 600 !important;
-  border-bottom: 0.5px solid var(--cupertino-separator) !important;
+  border-bottom: 1px solid var(--dx-separator) !important;
 }
-
 div[data-testid="stDataFrame"] tbody tr td {
-  background: var(--cupertino-bg-secondary) !important;
-  color: var(--cupertino-text-primary) !important;
-  border-bottom: 0.5px solid rgba(84, 84, 86, 0.3) !important;
+  background: var(--dx-bg-primary) !important;
+  color: var(--dx-text-primary) !important;
+  border-bottom: 1px solid rgba(51, 65, 85, 0.4) !important;
 }
-
 div[data-testid="stDataFrame"] tbody tr:hover td {
-  background: var(--cupertino-bg-tertiary) !important;
+  background: var(--dx-bg-secondary) !important;
 }
 
-/* ── Progress Bar ───────────────────────────────────── */
+/* ── Progress Bar ────────────────────────────────────────── */
 .stProgress > div {
-  background: var(--cupertino-fill) !important;
+  background: rgba(148, 163, 184, 0.15) !important;
   border-radius: 100px !important;
-  height: 4px !important;
+  height: 6px !important;
   overflow: hidden;
 }
-
 .stProgress > div > div {
-  background: var(--cupertino-blue) !important;
+  background: var(--dx-indigo) !important;
   border-radius: 100px !important;
   transition: width 0.4s cubic-bezier(0.32, 0.72, 0, 1);
 }
 
-/* ── Columns / Layout ───────────────────────────────── */
+/* ── Columns / Layout ────────────────────────────────────── */
 div[data-testid="column"] {
   gap: 1rem;
 }
 
-/* ── Spinner ────────────────────────────────────────── */
+/* ── Spinner ─────────────────────────────────────────────── */
 div[data-testid="stSpinner"] > div {
-  border-color: var(--cupertino-blue) !important;
+  border-color: var(--dx-indigo) !important;
   border-bottom-color: transparent !important;
 }
 
-/* ── Tooltips ───────────────────────────────────────── */
-div[data-testid="stTooltip"] {
-  background: var(--cupertino-bg-tertiary) !important;
-  border: 0.5px solid var(--cupertino-separator);
-  border-radius: var(--cupertino-radius-s);
-  color: var(--cupertino-text-primary);
-  font-size: 0.8rem;
+/* ── Caption ─────────────────────────────────────────────── */
+.stCaption {
+  color: var(--dx-text-tertiary) !important;
+  font-size: 0.8rem !important;
 }
 
-/* ── Multiselect ────────────────────────────────────── */
+/* ── Code blocks ─────────────────────────────────────────── */
+code {
+  background: var(--dx-bg-secondary) !important;
+  color: var(--dx-indigo) !important;
+  border-radius: 4px !important;
+  padding: 2px 6px !important;
+  font-size: 0.85em !important;
+}
+
+/* ── Download / Export buttons ──────────────────────────── */
+button[data-testid="baseButton-secondary"] {
+  background: transparent !important;
+  border: 1px solid var(--dx-separator) !important;
+  color: var(--dx-text-secondary) !important;
+  border-radius: var(--dx-radius-s) !important;
+}
+button[data-testid="baseButton-secondary"]:hover {
+  border-color: var(--dx-indigo) !important;
+  color: var(--dx-indigo) !important;
+}
+
+/* ── Multiselect tags ────────────────────────────────────── */
 div[data-baseweb="tag"] {
-  background: var(--cupertino-blue) !important;
+  background: var(--dx-indigo) !important;
   color: white !important;
   border-radius: 6px !important;
 }
 
-/* ── Sidebar Navigation Footer ──────────────────────── */
-section[data-testid="stSidebar"] .st-emotion-cache-16idsys {
-  color: var(--cupertino-text-tertiary);
-  font-size: 0.75rem;
-}
-
-/* ── Small style fixes ──────────────────────────────── */
-.st-emotion-cache-1gulkj5 {
-  display: none; /* hide extra hamburger menu decoration */
-}
+/* ── Small visual fixes ──────────────────────────────────── */
+.st-emotion-cache-1gulkj5 { display: none; }
 
 div[data-testid="stImage"] img {
-  border-radius: var(--cupertino-radius-s);
-}
-
-/* ── Caption ────────────────────────────────────────── */
-.stCaption {
-  color: var(--cupertino-text-tertiary) !important;
-  font-size: 0.8rem !important;
-}
-
-/* ── Code blocks ────────────────────────────────────── */
-code {
-  background: var(--cupertino-bg-tertiary) !important;
-  color: var(--cupertino-orange) !important;
-  border-radius: 4px !important;
-  padding: 2px 6px !important;
-  font-size: 0.85em !important;
+  border-radius: var(--dx-radius-s);
 }

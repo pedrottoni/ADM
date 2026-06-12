@@ -3,6 +3,7 @@ ADM Dashboard — Entry Point
 =============================
 Streamlit App principal. Inicializa DB, agents e sidebar.
 Cada tab é renderizada por um módulo separado em dashboard/tabs/.
+Navegação lateral estilo Dashdark X — sidebar vira o hub de navegação.
 
 Uso:
     streamlit run dashboard/app.py
@@ -29,7 +30,7 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# ── Custom CSS (Cupertino Dark) ───────────────────────────
+# ── Custom CSS (Dashdark Theme) ─────────────────────────────────────
 with open("dashboard/static/cupertino.css", encoding="utf-8") as f:
     st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
@@ -46,6 +47,110 @@ if "db_initialized" not in st.session_state:
     create_db_and_tables()
     initialize_default_user()
     st.session_state["db_initialized"] = True
+
+
+# ── Navigation Config ───────────────────────────────────────────────
+TAB_LABELS = [
+    "🏠  Resumo",
+    "💰  Financeiro",
+    "📢  Central de Marketing",
+    "🤝  Atendimento",
+    "📦  Meus Anúncios",
+    "🔍  Concorrência",
+    "⚙️  Configurações",
+]
+TAB_KEYS = [
+    "resumo", "financeiro", "marketing", "atendimento",
+    "anuncios", "concorrencia", "configuracoes",
+]
+
+# Ensure active_tab is initialized (keep existing selection across reruns)
+if "active_tab" not in st.session_state:
+    st.session_state.active_tab = TAB_KEYS[0]
+
+
+# ── Sidebar ─────────────────────────────────────────────────────────
+def render_sidebar(user):
+    """Render the sidebar with user profile and navigation."""
+    with st.sidebar:
+        # ── Brand / Logo ──
+        st.markdown(
+            '<div class="sidebar-brand">'
+            '  <span class="brand-icon">🚀</span>'
+            '  <span class="brand-name">ADM</span>'
+            '</div>',
+            unsafe_allow_html=True,
+        )
+        st.markdown(
+            '<div class="sidebar-subtitle">Shopee Growth Quest</div>',
+            unsafe_allow_html=True,
+        )
+
+        st.divider()
+
+        # ── User Profile ──
+        st.markdown(
+            f'<div class="user-profile">'
+            f'  <div class="user-avatar">👤</div>'
+            f'  <div class="user-info">'
+            f'    <div class="user-name">{user.username}</div>'
+            f'    <div class="user-level">Nível {user.level}</div>'
+            f'  </div>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
+
+        # XP Bar
+        xp_progress = (user.xp % 100) / 100 if user.xp else 0
+        st.progress(min(xp_progress, 1.0), text=f"XP: {user.xp}")
+
+        # Achievements
+        st.markdown(
+            '<div class="sidebar-achievements">'
+            '  <span class="achievement-badge">🏆 Fundador</span>'
+            '</div>',
+            unsafe_allow_html=True,
+        )
+
+        st.divider()
+        st.markdown("###  Navegação")
+
+        # ── Navigation Radio ──
+        current_idx = TAB_KEYS.index(st.session_state.active_tab)
+        selected = st.radio(
+            "nav",
+            options=TAB_LABELS,
+            index=current_idx,
+            key="nav_radio",
+            label_visibility="collapsed",
+        )
+
+        # Update active tab if changed
+        new_idx = TAB_LABELS.index(selected)
+        new_key = TAB_KEYS[new_idx]
+        if new_key != st.session_state.active_tab:
+            st.session_state.active_tab = new_key
+            st.rerun()
+
+        st.divider()
+
+        # ── LLM Toggle (moved from header) ──
+        llm_on = st.toggle(
+            "🤖  IA Ativa",
+            value=llm_client.enabled,
+            help="Ativar ou desativar a conexão com a IA",
+        )
+        if llm_on != llm_client.enabled:
+            llm_client.set_enabled(llm_on)
+            st.rerun()
+
+        # ── Bottom CTA ──
+        st.markdown(
+            '<div class="sidebar-footer">'
+            '  <a href="#" class="sidebar-cta">ADM v1.0</a>'
+            '</div>',
+            unsafe_allow_html=True,
+        )
 
 
 # ── Main ────────────────────────────────────────────────────────────
@@ -67,52 +172,27 @@ def main():
         "customer_agent": st.session_state.customer_agent,
     }
 
-    # Sidebar: User profile & gamification
     user = load_user()
-    with st.sidebar:
-        st.header(f"👋 Olá, {user.username}!")
-        st.metric(label="Nível", value=f"Lvl {user.level}")
-        st.progress(user.xp % 100 / 100, text=f"XP: {user.xp}")
-        st.divider()
-        st.write("### 🏆 Conquistas Recentes")
-        st.write("🛠️ Fundador (Badge)")
 
-    # Title + LLM toggle
-    title_col, toggle_col = st.columns([6, 1])
-    with title_col:
-        st.title("🚀 Shopee Growth Quest")
-    with toggle_col:
-        llm_on = st.toggle(
-            "🤖 IA",
-            value=llm_client.enabled,
-            help="Ativar ou desativar a conexão com a IA",
-        )
-        if llm_on != llm_client.enabled:
-            llm_client.set_enabled(llm_on)
-            st.rerun()
+    # ── Sidebar ──
+    render_sidebar(user)
 
-    # ── Tabs ────────────────────────────────────────────────────────
-    tab_labels = [
-        "🏠 Resumo",
-        "💰 Financeiro",
-        "📢 Central de Marketing",
-        "🤝 Atendimento",
-        "📦 Meus Anúncios",
-        "🔍 Concorrência",
-        "⚙️ Configurações",
-    ]
-    tab_keys = ["resumo", "financeiro", "marketing", "atendimento",
-                "anuncios", "concorrencia", "configuracoes"]
+    # ── Main Header ──
+    active_label = TAB_LABELS[TAB_KEYS.index(st.session_state.active_tab)]
+    st.markdown(f"## {active_label}")
+    st.markdown(
+        '<p class="page-subtitle">'
+        'Measure your advertising ROI and report website traffic.'
+        '</p>',
+        unsafe_allow_html=True,
+    )
 
-    tabs = st.tabs(tab_labels)
-
-    for i, (tab, key) in enumerate(zip(tabs, tab_keys)):
-        with tab:
-            render_fn = TAB_RENDERERS.get(key)
-            if render_fn:
-                render_fn(user, agents)
-            else:
-                st.error(f"Tab '{key}' não encontrada.")
+    # ── Content (render active tab) ──
+    render_fn = TAB_RENDERERS.get(st.session_state.active_tab)
+    if render_fn:
+        render_fn(user, agents)
+    else:
+        st.error(f"Tab '{st.session_state.active_tab}' não encontrada.")
 
 
 if __name__ == "__main__":
