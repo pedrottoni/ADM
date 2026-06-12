@@ -110,59 +110,59 @@ def render(user, agents):
                 # ── Layout: Main chart (2/3) + Side cards (1/3) ──
                 col_main, col_side = st.columns([2, 1], gap="medium")
 
+                income_total = chart_data[chart_data['Tipo'] == 'INCOME']['Valor'].sum()
+                expense_total = chart_data[chart_data['Tipo'] == 'EXPENSE']['Valor'].sum()
+                net_total = income_total - expense_total
+                net_margem = (net_total / income_total * 100) if income_total > 0 else 0
+
                 # ================================================================
                 # LEFT COLUMN — Evolução Financeira (Bar Chart)
                 # ================================================================
                 with col_main:
-                    st.markdown('<div class="chart-card-marker-evolution" style="display:none"></div>', unsafe_allow_html=True)
+                    with st.container():
+                        st.markdown('<div class="chart-card-marker-evolution" style="display:none"></div>', unsafe_allow_html=True)
 
-                    income_total = chart_data[chart_data['Tipo'] == 'INCOME']['Valor'].sum()
-                    expense_total = chart_data[chart_data['Tipo'] == 'EXPENSE']['Valor'].sum()
-                    net_total = income_total - expense_total
-                    net_margem = (net_total / income_total * 100) if income_total > 0 else 0
-
-                    st.markdown(f"""
-                    <div class="chart-card-header">
-                        <div class="chart-card-header-left">
-                            <span class="chart-card-title">📈 Evolução Financeira</span>
-                            <div class="chart-card-value-row">
-                                <span class="chart-card-value">R$ {income_total:,.2f}</span>
-                                <span class="chart-card-delta">▲ {net_margem:.1f}%</span>
+                        st.markdown(f"""
+                        <div class="chart-card-header">
+                            <div class="chart-card-header-left">
+                                <span class="chart-card-title">📈 Evolução Financeira</span>
+                                <div class="chart-card-value-row">
+                                    <span class="chart-card-value">R$ {income_total:,.2f}</span>
+                                    <span class="chart-card-delta">▲ {net_margem:.1f}%</span>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    <div class="chart-card-legend">
-                        <span class="chart-card-legend-item">
-                            <span class="chart-card-legend-dot" style="background:#818CF8"></span> Receitas
-                        </span>
-                        <span class="chart-card-legend-item">
-                            <span class="chart-card-legend-dot" style="background:#F87171"></span> Despesas
-                        </span>
-                    </div>
-                    """, unsafe_allow_html=True)
+                        <div class="chart-card-legend">
+                            <span class="chart-card-legend-item">
+                                <span class="chart-card-legend-dot" style="background:#818CF8"></span> Receitas
+                            </span>
+                            <span class="chart-card-legend-item">
+                                <span class="chart-card-legend-dot" style="background:#F87171"></span> Despesas
+                            </span>
+                        </div>
+                        """, unsafe_allow_html=True)
 
-                    # Renomear tipos para PT antes do gráfico
-                    chart_display = chart_data.copy()
-                    chart_display['Tipo'] = chart_display['Tipo'].replace({'EXPENSE': 'Despesas', 'INCOME': 'Receitas'})
+                        chart_display = chart_data.copy()
+                        chart_display['Tipo'] = chart_display['Tipo'].replace({'EXPENSE': 'Despesas', 'INCOME': 'Receitas'})
 
-                    fig = px.bar(chart_display, x='Período', y='Valor', color='Tipo',
-                                 color_discrete_map={"Despesas": "#F87171", "Receitas": "#818CF8"},
-                                 barmode='relative', height=400)
-                    fig.update_layout(
-                        margin=dict(l=10, r=10, t=10, b=10),
-                        showlegend=False,
-                        paper_bgcolor='rgba(0,0,0,0)',
-                        plot_bgcolor='rgba(0,0,0,0)',
-                        font=dict(color='#94A3B8', size=11),
-                        hovermode='x unified',
-                    )
-                    fig.update_xaxes(type='category', tickangle=0, gridcolor='#334155',
-                                     title_text='', showticklabels=True)
-                    fig.update_yaxes(gridcolor='#334155', title_text='', showticklabels=True)
+                        fig = px.bar(chart_display, x='Período', y='Valor', color='Tipo',
+                                     color_discrete_map={"Despesas": "#F87171", "Receitas": "#818CF8"},
+                                     barmode='relative', height=400)
+                        fig.update_layout(
+                            margin=dict(l=10, r=10, t=10, b=10),
+                            showlegend=False,
+                            paper_bgcolor='rgba(0,0,0,0)',
+                            plot_bgcolor='rgba(0,0,0,0)',
+                            font=dict(color='#94A3B8', size=11),
+                            hovermode='x unified',
+                        )
+                        fig.update_xaxes(type='category', tickangle=0, gridcolor='#334155',
+                                         title_text='', showticklabels=True)
+                        fig.update_yaxes(gridcolor='#334155', title_text='', showticklabels=True)
 
-                    event = st.plotly_chart(fig, on_select="rerun", use_container_width=True)
+                        event = st.plotly_chart(fig, on_select="rerun", use_container_width=True)
 
-                    # ── Detail on click ──
+                    # ── Detail on click (OUTSIDE the card, inside column) ──
                     sel_points = None
                     if event is not None:
                         raw_sel = event.get("selection", {}) if isinstance(event, dict) else getattr(event, "selection", None) or {}
@@ -242,36 +242,25 @@ def render(user, agents):
                                 )
 
                 # ================================================================
-                # RIGHT COLUMN — Two Small Charts (embedded via st.html+fig.to_html)
+                # RIGHT COLUMN — Two Cards (each wrapped in container with marker)
                 # ================================================================
                 with col_side:
                     # ── Card A: Lucro Líquido por Período ──
-                    income_by_period = chart_data[chart_data['Tipo'] == 'INCOME'][['Período', 'Valor']].rename(columns={'Valor': 'Income'})
-                    expense_by_period = chart_data[chart_data['Tipo'] == 'EXPENSE'][['Período', 'Valor']].rename(columns={'Valor': 'Expense'})
-                    net_df = income_by_period.merge(expense_by_period, on='Período', how='outer').fillna(0)
-                    net_df['Lucro'] = net_df['Income'] - net_df['Expense']
-                    net_df['Período'] = pd.Categorical(net_df['Período'], categories=net_df['Período'].unique(), ordered=True)
-                    net_df = net_df.sort_values('Período').reset_index(drop=True)
+                    with st.container():
+                        st.markdown('<div class="chart-card-marker-side" style="display:none"></div>', unsafe_allow_html=True)
 
-                    total_net = net_df['Lucro'].sum()
-                    net_pos = total_net >= 0
-                    net_pct = abs(total_net / income_total * 100) if income_total > 0 else 0
+                        income_by_period = chart_data[chart_data['Tipo'] == 'INCOME'][['Período', 'Valor']].rename(columns={'Valor': 'Income'})
+                        expense_by_period = chart_data[chart_data['Tipo'] == 'EXPENSE'][['Período', 'Valor']].rename(columns={'Valor': 'Expense'})
+                        net_df = income_by_period.merge(expense_by_period, on='Período', how='outer').fillna(0)
+                        net_df['Lucro'] = net_df['Income'] - net_df['Expense']
+                        net_df['Período'] = pd.Categorical(net_df['Período'], categories=net_df['Período'].unique(), ordered=True)
+                        net_df = net_df.sort_values('Período').reset_index(drop=True)
 
-                    fig_net = px.bar(net_df, x='Período', y='Lucro',
-                                     color_discrete_sequence=['#818CF8'], height=180)
-                    fig_net.update_layout(
-                        margin=dict(l=5, r=5, t=5, b=5),
-                        showlegend=False,
-                        paper_bgcolor='rgba(0,0,0,0)',
-                        plot_bgcolor='rgba(0,0,0,0)',
-                        font=dict(color='#94A3B8', size=9),
-                    )
-                    fig_net.update_xaxes(tickangle=0, gridcolor='#334155', showticklabels=False,
-                                         title_text='')
-                    fig_net.update_yaxes(gridcolor='#334155', showticklabels=True, title_text='')
+                        total_net = net_df['Lucro'].sum()
+                        net_pos = total_net >= 0
+                        net_pct = abs(total_net / income_total * 100) if income_total > 0 else 0
 
-                    card1_html = f"""
-                    <div class="chart-card" style="margin-bottom:1rem">
+                        st.markdown(f"""
                         <div class="chart-card-header" style="margin-bottom:0.5rem">
                             <div class="chart-card-header-left">
                                 <span class="chart-card-title">📊 Lucro Líquido</span>
@@ -284,33 +273,32 @@ def render(user, agents):
                             </div>
                             <span style="color:#94A3B8;font-size:0.75rem">por período</span>
                         </div>
-                        {fig_net.to_html(include_plotlyjs=False, full_html=False)}
-                    </div>
-                    """
-                    st.html(card1_html)
+                        """, unsafe_allow_html=True)
+
+                        fig_net = px.bar(net_df, x='Período', y='Lucro',
+                                         color_discrete_sequence=['#818CF8'], height=180)
+                        fig_net.update_layout(
+                            margin=dict(l=5, r=5, t=5, b=5),
+                            showlegend=False,
+                            paper_bgcolor='rgba(0,0,0,0)',
+                            plot_bgcolor='rgba(0,0,0,0)',
+                            font=dict(color='#94A3B8', size=9),
+                        )
+                        fig_net.update_xaxes(tickangle=0, gridcolor='#334155', showticklabels=False,
+                                             title_text='')
+                        fig_net.update_yaxes(gridcolor='#334155', showticklabels=True, title_text='')
+                        st.plotly_chart(fig_net, use_container_width=True)
 
                     # ── Card B: Despesas por Categoria ──
-                    expense_df = df_tmp[df_tmp['Tipo'] == 'EXPENSE']
-                    if not expense_df.empty:
-                        cat_expense = expense_df.groupby('Categoria')['Valor'].sum().reset_index().sort_values('Valor', ascending=False)
-                        total_exp = cat_expense['Valor'].sum()
+                    with st.container():
+                        st.markdown('<div class="chart-card-marker-side" style="display:none"></div>', unsafe_allow_html=True)
 
-                        fig_cat = px.pie(
-                            cat_expense, names='Categoria', values='Valor',
-                            color_discrete_sequence=px.colors.qualitative.Set3,
-                            hole=0.55, height=220,
-                        )
-                        fig_cat.update_layout(
-                            margin=dict(l=10, r=10, t=10, b=10),
-                            paper_bgcolor='rgba(0,0,0,0)',
-                            font=dict(color='#94A3B8', size=9),
-                            showlegend=True,
-                            legend=dict(orientation='h', yanchor='bottom', y=-0.2, xanchor='center', x=0.5, font=dict(size=9)),
-                        )
-                        fig_cat.update_annotations(font=dict(color='#F8FAFC', size=11))
+                        expense_df = df_tmp[df_tmp['Tipo'] == 'EXPENSE']
+                        if not expense_df.empty:
+                            cat_expense = expense_df.groupby('Categoria')['Valor'].sum().reset_index().sort_values('Valor', ascending=False)
+                            total_exp = cat_expense['Valor'].sum()
 
-                        card2_html = f"""
-                        <div class="chart-card">
+                            st.markdown(f"""
                             <div class="chart-card-header" style="margin-bottom:0.5rem">
                                 <div class="chart-card-header-left">
                                     <span class="chart-card-title">💸 Despesas por Categoria</span>
@@ -320,12 +308,23 @@ def render(user, agents):
                                 </div>
                                 <span style="color:#94A3B8;font-size:0.75rem">{len(cat_expense)} categorias</span>
                             </div>
-                            {fig_cat.to_html(include_plotlyjs=False, full_html=False)}
-                        </div>
-                        """
-                        st.html(card2_html)
-                    else:
-                        st.markdown('<p style="color:#94A3B8;text-align:center;padding:2rem 0">Nenhuma despesa registrada</p>', unsafe_allow_html=True)
+                            """, unsafe_allow_html=True)
+
+                            fig_cat = px.pie(
+                                cat_expense, names='Categoria', values='Valor',
+                                color_discrete_sequence=px.colors.qualitative.Set3,
+                                hole=0.55, height=220,
+                            )
+                            fig_cat.update_layout(
+                                margin=dict(l=10, r=10, t=10, b=10),
+                                paper_bgcolor='rgba(0,0,0,0)',
+                                font=dict(color='#94A3B8', size=9),
+                                showlegend=True,
+                                legend=dict(orientation='h', yanchor='bottom', y=-0.2, xanchor='center', x=0.5, font=dict(size=9)),
+                            )
+                            st.plotly_chart(fig_cat, use_container_width=True)
+                        else:
+                            st.markdown('<p style="color:#94A3B8;text-align:center;padding:2rem 0">Nenhuma despesa registrada</p>', unsafe_allow_html=True)
 
         else:
             st.info("Nenhuma transação financeira encontrada.")

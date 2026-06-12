@@ -349,16 +349,24 @@ section[data-testid="stSidebar"] label[data-baseweb="toggle"] span {
   display: inline-block;
 }
 
-/* ── Chart Card Marker (main column card styling) ── */
-.chart-card-marker-evolution {
+/* ── Chart Card Markers (target only inner container, not the outer column) ── */
+.chart-card-marker-evolution,
+.chart-card-marker-side {
   display: none;
 }
-.stVerticalBlock:has(.chart-card-marker-evolution) {
+.stVerticalBlock > .stElementContainer > .stVerticalBlock:has(.chart-card-marker-evolution) {
   background: #1E293B !important;
   border: 1px solid #334155 !important;
   border-radius: 12px !important;
   padding: 1.5rem !important;
   box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+.stVerticalBlock > .stElementContainer > .stVerticalBlock:has(.chart-card-marker-side) {
+  background: #1E293B !important;
+  border: 1px solid #334155 !important;
+  border-radius: 12px !important;
+  padding: 1.5rem !important;
+  margin-bottom: 1rem !important;
 }
 
 /* ── Buttons ─────────────────────────────────────────────── */
