@@ -58,6 +58,7 @@ Usuário → Dashboard (app.py) → Tabs (tabs/*.py) → Agents → LLMClient / 
 3. **Imports de componentes** (`dashboard/components/`) devem ser **locais** (dentro da função), não no topo do módulo
 4. **Preços podem vir zerados** dos scrapers — sempre valide antes de usar
 5. **Se precisar de mais contexto**, leia os AGENTS.md relacionados antes de abrir arquivos
+6. **`select()` do SQLModel** — toda vez que usar `session.exec(select(...))`, lembre de **importar `select`**: `from sqlmodel import select`. Sem isso dá `NameError`. (EXEMPLO em `core/database/AGENTS.md`)
 
 ---
 
