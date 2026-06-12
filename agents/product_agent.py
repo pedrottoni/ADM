@@ -80,6 +80,8 @@ class ProductAgent(BaseAgent):
         df_export['Imagem 4'] = ""
         df_export['Imagem 5'] = ""
         
+        return df_export.to_csv(index=False)
+        
     def extract_product_info(self, image_bytes: bytes) -> str:
         """
         Step 1: Just extract raw info from the image.

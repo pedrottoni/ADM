@@ -1,10 +1,13 @@
 import streamlit as st
 import pandas as pd
+import plotly.express as px
 import re
 from core.config import Config
-from core.database.engine import create_db_and_tables, get_session, initialize_default_user
+from core.llm_client import llm_client
+from core.database.engine import create_db_and_tables, get_session, initialize_default_user, engine
 from core.database.models import User
-from sqlmodel import select
+from sqlmodel import select, Session
+from sqlalchemy.orm import selectinload
 from agents.finance_agent import FinanceAgent
 
 # Page Config
@@ -27,6 +30,10 @@ div.stButton > button:first-child[kind="primary"]:hover {
     background-color: #45a049;
     border-color: #45a049;
 }
+/* Push the LLM toggle down to align with the title */
+.stToggle {
+    padding-top: 2.5rem;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -37,9 +44,9 @@ if "db_initialized" not in st.session_state:
     st.session_state["db_initialized"] = True
 
 def load_user_data():
-    """Load the main user (Admin) for display."""
+    """Load the main user (Admin) for display with missions eagerly loaded."""
     session = next(get_session())
-    statement = select(User).where(User.username == "Admin")
+    statement = select(User).options(selectinload(User.missions)).where(User.username == "Admin")
     return session.exec(statement).first()
 
 def main():
@@ -70,81 +77,300 @@ def main():
         st.write("### 🏆 Conquistas Recentes")
         st.write("🛠️ Fundador (Badge)")
         
-        st.divider()
-        # Dev Tools
-        with st.expander("🛠️ Admin Tools"):
-            if st.button("🔄 Recarregar Sistema"):
-                import importlib
-                import sys
-                import agents.finance_agent
-                import agents.product_agent
-                import agents.ads_agent
-                
-                # Force reload of agent modules
-                importlib.reload(sys.modules['agents.finance_agent'])
-                importlib.reload(sys.modules['agents.product_agent'])
-                if 'agents.ads_agent' in sys.modules:
-                    importlib.reload(sys.modules['agents.ads_agent'])
-                
-                # Clear Streamlit Cache
-                st.cache_data.clear()
-                st.cache_resource.clear()
-                
-                st.toast("Sistema recarregado com Sucesso!", icon="✅")
-                st.rerun()
     
-    # Main Content
-    st.title("🚀 Shopee Growth Quest")
+    # Main Content — Title + LLM Toggle
+    title_col, toggle_col = st.columns([6, 1])
+    with title_col:
+        st.title("🚀 Shopee Growth Quest")
+    with toggle_col:
+        llm_on = st.toggle(
+            "🤖 IA",
+            value=llm_client.enabled,
+            help="Ativar ou desativar a conexão com a IA"
+        )
+        if llm_on != llm_client.enabled:
+            llm_client.set_enabled(llm_on)
+            st.rerun()
     
-    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["🏠 Resumo", "💰 Financeiro", "📢 Central de Marketing", "🤝 Atendimento", "📦 Meus Anúncios", "⚙️ Configurações"])
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(["🏠 Resumo", "💰 Financeiro", "📢 Central de Marketing", "🤝 Atendimento", "📦 Meus Anúncios", "🔍 Concorrência", "⚙️ Configurações"])
     
     with tab1:
-        st.header("Missões do Dia")
-        col1, col2 = st.columns(2)
-        with col1:
-            st.info("📝 **Missão 1**: Registre suas vendas de ontem.")
-            if st.button("Completar (+10 XP)"):
-                # Mock completion logic (will be real later)
-                st.toast("XP Adicionado! (Simulação)")
-        with col2:
+        # ── KPI Cards ──
+        stats = finance_agent.get_financial_stats(user.id)
+        kpi_row1 = st.columns(4)
+        kpi_row1[0].metric("💰 Receita Total", f"R$ {stats['total_revenue']:,.2f}")
+        kpi_row1[1].metric("📉 Despesas", f"R$ {stats['total_expenses']:,.2f}")
+        kpi_row1[2].metric("📈 Lucro Líquido", f"R$ {stats['net_profit']:,.2f}",
+                           delta=f"{stats['margin']:.1f}%" if stats['total_revenue'] > 0 else None)
+        kpi_row1[3].metric("📊 Transações", str(stats['transaction_count']))
+
+        st.divider()
+
+        # ── Top Vendas + Top Produtos (2 colunas, topo) ──
+        col_top_left, col_top_right = st.columns([1, 1])
+
+        with col_top_left:
+            st.subheader("🏆 Top Vendas")
+            top_prods = finance_agent.get_top_products(user.id, limit=10)
+            if top_prods:
+                for i, p in enumerate(top_prods, 1):
+                    title = p['product_title'][:35] + "..." if len(p['product_title']) > 35 else p['product_title']
+                    st.markdown(f"**{i}.** {title} — *R$ {p['total_revenue']:,.2f}*")
+            else:
+                st.info("Nenhuma venda registrada ainda.")
+
+        with col_top_right:
+            st.subheader("🏆 Top Produtos")
+            top_by_potes = finance_agent.get_top_products_by_potes(user.id, limit=10)
+            if top_by_potes:
+                for i, p in enumerate(top_by_potes, 1):
+                    title = p['product_title'][:35] + "..." if len(p['product_title']) > 35 else p['product_title']
+                    st.markdown(f"**{i}.** {title} — **:green[Vendidos: {p['total_potes']} un.]**")
+            else:
+                st.info("Nenhum produto vendido ainda.")
+
+        st.divider()
+
+        # ── Progresso + Alertas (2 colunas, abaixo) ──
+        col_bot_left, col_bot_right = st.columns([1, 1])
+
+        with col_bot_left:
+            st.subheader("🎯 Progresso")
+            next_level_xp = user.level * 100
+            progress = min(user.xp / next_level_xp, 1.0)
+            st.progress(progress, text=f"Nível {user.level} — {user.xp}/{next_level_xp} XP")
+            st.caption(f"Total de missões completadas: {len([m for m in user.missions if m.is_completed]) if user.missions else 0}")
+
+            st.divider()
+
+            # ── Missões Ativas ──
+            st.markdown("**Missões Ativas**")
+            if user.missions:
+                pending = [m for m in user.missions if not m.is_completed]
+                if pending:
+                    for m in pending[:3]:
+                        st.info(f"📝 **{m.title}** — +{m.xp_reward} XP")
+                        st.caption(m.description[:80] + "..." if len(m.description) > 80 else m.description)
+                else:
+                    st.success("✅ Todas as missões concluídas!")
+            else:
+                st.info("Nenhuma missão cadastrada. Comece registrando vendas!")
+
+        with col_bot_right:
+            st.subheader("⚠️ Alertas de Estoque")
             low_stock_items = product_agent.get_low_stock_items(user.id)
             if low_stock_items:
                 for item in low_stock_items:
-                    st.error(f"⚠️ **Alerta**: Estoque de '{item.name}' está baixo ({item.stock} un | Mín: {item.min_stock})")
+                    st.error(f"**{item.name}** — {item.stock} un (mín: {item.min_stock})")
             else:
-                st.success("✅ Todos os itens do inventário estão com estoque saudável.")
+                st.success("✅ Todos os itens com estoque saudável.")
+
+        st.divider()
+
+        # ── Ações Rápidas ──
+        st.subheader("⚡ Ações Rápidas")
+        qa1, qa2, qa3, qa4 = st.columns(4)
+        with qa1:
+            if st.button("💰 Nova Venda", use_container_width=True, type="primary"):
+                st.switch_page("dashboard/main.py")  # fallback: will just scroll to tab2
+                # Streamlit doesn't support programmatic tab switching;
+                # We redirect to the same page (a re-run) and show a toast
+                st.toast("Vá para a aba 💰 Financeiro > Registrar Venda")
+        with qa2:
+            if st.button("📦 Novo Produto", use_container_width=True):
+                st.toast("Vá para a aba 📦 Meus Anúncios > Adicionar Anúncio")
+        with qa3:
+            if st.button("🔍 Ver Concorrência", use_container_width=True):
+                st.toast("Vá para a aba 🔍 Concorrência")
+        with qa4:
+            if st.button("📥 Importar CSV", use_container_width=True):
+                st.toast("Vá para a aba 📦 Meus Anúncios > Importar")
 
     with tab2:
         st.header("Tesouraria Real 🛡️")
-        
+
         # Carregar Estatísticas e Produtos
         analysis = finance_agent.analyze_health(user.id)
         stats = analysis["stats"]
         all_transactions = [{"ID": t.id, "Data": t.date, "Desc": t.description, "Valor": t.amount, "Tipo": t.type, "Categoria": t.category} for t in stats["raw_data"]]
         df_all = pd.DataFrame(all_transactions)
-        
-        # Carregar produtos para os dropdowns
+
+        # Carregar produtos para os dropdowns e calcular COGS
         from agents.product_agent import ProductAgent
         if 'pa_fin' not in st.session_state: st.session_state.pa_fin = ProductAgent()
         products_list = st.session_state.pa_fin.get_all_products(user.id)
+
+        # Calcular COGS (Custo dos Produtos Vendidos) a partir das transações de venda
+        from core.database.models import Transaction, Product, InventoryItem, ProductComponent
+        session_cogs = next(get_session())
+        income_txns = session_cogs.exec(
+            select(Transaction).where(
+                Transaction.user_id == user.id,
+                Transaction.type == "INCOME"
+            )
+        ).all()
+
+        total_cogs = 0.0
+        for txn in income_txns:
+            if txn.product_id and txn.quantity:
+                product = session_cogs.get(Product, txn.product_id)
+                if product:
+                    if hasattr(product, 'components') and product.components:
+                        # Produto é um kit - calcular custo baseado nos componentes físicos
+                        for comp in product.components:
+                            inv_item = session_cogs.get(InventoryItem, comp.inventory_item_id)
+                            if inv_item:
+                                unidades = txn.quantity * (comp.quantity or 1)
+                                total_cogs += unidades * (inv_item.supplier_price or 0.0)
+                    else:
+                        # Produto simples - usar supplier_price do próprio produto
+                        total_cogs += txn.quantity * (product.supplier_price or 0.0)
+
+        # Recalcular lucro real com COGS
+        fat_bruto = stats['total_revenue']
+        saidas = stats['total_expenses']
+        lucro_real = fat_bruto - saidas - total_cogs
+        margem_real = (lucro_real / fat_bruto * 100) if fat_bruto > 0 else 0
+
         sub_tab_dash, sub_tab_venda, sub_tab_gasto, sub_tab_upload = st.tabs([
             "📊 Resumo Geral", "💰 Registrar Venda", "💸 Despesas", "📂 Importar Dados"
         ])
 
         with sub_tab_dash:
-            # KPIs Principais
-            k1, k2, k3 = st.columns(3)
-            k1.metric("Fat. Bruto", f"R$ {stats['total_revenue']:.2f}")
-            k2.metric("Saídas (Custos/Ads)", f"R$ {stats['total_expenses']:.2f}")
-            k3.metric("Lucro Real", f"R$ {stats['net_profit']:.2f}", delta=f"{stats['margin']:.1f}% Margem")
+            # KPIs Principais - 4 colunas
+            k1, k2, k3, k4 = st.columns(4)
+            k1.metric("Fat. Bruto", f"R$ {fat_bruto:,.2f}")
+            k2.metric("Saídas (Custos/Ads)", f"R$ {saidas:,.2f}")
+            k3.metric("COGS", f"R$ {total_cogs:,.2f}", help="Custo dos Produtos Vendidos")
+            k4.metric("Lucro Real", f"R$ {lucro_real:,.2f}", delta=f"{margem_real:.1f}% Margem",
+                     delta_color="normal" if lucro_real >= 0 else "inverse")
             
             if not df_all.empty:
-                st.subheader("Evolução Mensal")
-                df_all['Mes'] = pd.to_datetime(df_all['Data']).dt.strftime('%Y-%m')
-                chart_data = df_all.groupby(['Mes', 'Tipo'])['Valor'].sum().unstack().fillna(0)
-                color_map = {"EXPENSE": "#ff4b4b", "INCOME": "#4bceac"}
-                chart_colors = [color_map[col] for col in chart_data.columns if col in color_map]
-                st.bar_chart(chart_data, color=chart_colors)
+                st.subheader("Evolução Financeira")
+                df_tmp = df_all.copy()
+                df_tmp['Date'] = pd.to_datetime(df_tmp['Data'])
+
+                period_type = st.radio(
+                    "Agrupar por:",
+                    options=["Anual", "Mensal", "Semanal", "Diário", "Período personalizado"],
+                    horizontal=True, index=0, key="finance_period_type"
+                )
+
+                if period_type == "Período personalizado":
+                    col_d1, col_d2 = st.columns(2)
+                    with col_d1:
+                        p_start = st.date_input("Data Início", key="fin_start")
+                    with col_d2:
+                        p_end = st.date_input("Data Fim", key="fin_end")
+                    mask = (df_tmp['Date'] >= pd.Timestamp(p_start)) & (df_tmp['Date'] <= pd.Timestamp(p_end))
+                    df_tmp = df_tmp[mask]
+                    period_group = df_tmp['Date'].dt.strftime('%d-%m-%Y')
+                elif period_type == "Anual":
+                    period_group = df_tmp['Date'].dt.strftime('%Y')
+                elif period_type == "Semanal":
+                    period_group = df_tmp['Date'].dt.strftime('%Y-W%V')
+                elif period_type == "Diário":
+                    period_group = df_tmp['Date'].dt.strftime('%d-%m-%Y')
+                else:
+                    period_group = df_tmp['Date'].dt.strftime('%Y-%m')
+
+                if not df_tmp.empty:
+                    df_tmp['Período'] = period_group
+                    chart_data = df_tmp.groupby(['Período', 'Tipo'])['Valor'].sum().reset_index()
+
+                    fig = px.bar(chart_data, x='Período', y='Valor', color='Tipo',
+                                 color_discrete_map={"EXPENSE": "#ff4b4b", "INCOME": "#4bceac"},
+                                 barmode='relative', height=400)
+                    fig.update_layout(margin=dict(l=0, r=0, t=0, b=0),
+                                      legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='right', x=1))
+                    fig.update_xaxes(type='category', tickangle=-45)
+
+                    event = st.plotly_chart(fig, on_select="rerun", use_container_width=True)
+
+                    sel_points = None
+                    if event is not None:
+                        raw_sel = event.get("selection", {}) if isinstance(event, dict) else getattr(event, "selection", None) or {}
+                        sel_points = raw_sel.get("points", []) if isinstance(raw_sel, dict) else getattr(raw_sel, "points", [])
+
+                    if sel_points:
+                        periodo_clicado = sel_points[0].get("x") if isinstance(sel_points[0], dict) else getattr(sel_points[0], "x", None)
+                        detail = df_tmp[df_tmp['Período'] == periodo_clicado]
+
+                        if not detail.empty:
+                            st.markdown("---")
+                            st.subheader(f"📋 Detalhamento: {periodo_clicado}")
+
+                            det_fat = detail[detail['Tipo'] == 'INCOME']['Valor'].sum()
+                            det_sai = detail[detail['Tipo'] == 'EXPENSE']['Valor'].sum()
+
+                            det_income_ids = set(detail[detail['Tipo'] == 'INCOME']['ID'].tolist())
+                            det_cogs = 0.0
+                            for txn in income_txns:
+                                if txn.id in det_income_ids and txn.product_id and txn.quantity:
+                                    product = session_cogs.get(Product, txn.product_id)
+                                    if product:
+                                        if hasattr(product, 'components') and product.components:
+                                            for comp in product.components:
+                                                inv_item = session_cogs.get(InventoryItem, comp.inventory_item_id)
+                                                if inv_item:
+                                                    det_cogs += txn.quantity * (comp.quantity or 1) * (inv_item.supplier_price or 0.0)
+                                        else:
+                                            det_cogs += txn.quantity * (product.supplier_price or 0.0)
+
+                            det_lucro = det_fat - det_sai - det_cogs
+                            det_margem = (det_lucro / det_fat * 100) if det_fat > 0 else 0
+
+                            kd1, kd2, kd3, kd4 = st.columns(4)
+                            kd1.metric("Fat. Bruto", f"R$ {det_fat:,.2f}")
+                            kd2.metric("Saídas", f"R$ {det_sai:,.2f}")
+                            kd3.metric("COGS", f"R$ {det_cogs:,.2f}")
+                            kd4.metric("Lucro Real", f"R$ {det_lucro:,.2f}", delta=f"{det_margem:.1f}% Margem",
+                                      delta_color="normal" if det_lucro >= 0 else "inverse")
+
+                            income_detail = detail[detail['Tipo'] == 'INCOME']
+                            if not income_detail.empty:
+                                with st.expander("📦 Produtos Vendidos", expanded=True):
+                                    period_start = income_detail['Date'].min().to_pydatetime()
+                                    period_end = income_detail['Date'].max().to_pydatetime()
+
+                                    col_tv, col_tp = st.columns(2)
+
+                                    with col_tv:
+                                        st.markdown("**🏆 Top Vendas**")
+                                        top_prods = finance_agent.get_top_products(
+                                            user.id, limit=10,
+                                            start_date=period_start, end_date=period_end
+                                        )
+                                        if top_prods:
+                                            for i, p in enumerate(top_prods, 1):
+                                                title = p['product_title'][:35] + "..." if len(p['product_title']) > 35 else p['product_title']
+                                                st.markdown(f"**{i}.** {title} — *R$ {p['total_revenue']:,.2f}*")
+                                        else:
+                                            st.info("Nenhuma venda no período.")
+
+                                    with col_tp:
+                                        st.markdown("**🏆 Top Produtos**")
+                                        top_potes = finance_agent.get_top_products_by_potes(
+                                            user.id, limit=10,
+                                            start_date=period_start, end_date=period_end
+                                        )
+                                        if top_potes:
+                                            for i, p in enumerate(top_potes, 1):
+                                                title = p['product_title'][:35] + "..." if len(p['product_title']) > 35 else p['product_title']
+                                                st.markdown(f"**{i}.** {title} — **:green[Vendidos: {p['total_potes']} un.]**")
+                                        else:
+                                            st.info("Nenhum produto no período.")
+
+                            with st.expander("📄 Todas as Transações", expanded=False):
+                                st.dataframe(
+                                    detail[['Data', 'Desc', 'Valor', 'Tipo', 'Categoria']].sort_values('Data'),
+                                    hide_index=True, use_container_width=True
+                                )
+
+                            if st.button("🗑️ Limpar seleção", key="clear_period_selection"):
+                                st.rerun()
+                else:
+                    st.info("Nenhum dado no período selecionado.")
 
                 with st.expander("📝 Gerenciar Histórico de Transações"):
                     all_transactions_with_id = [{"ID": t.id, "Data": t.date, "Desc": t.description, "Valor": t.amount, "Tipo": t.type, "Categoria": t.category} for t in stats["raw_data"]]
@@ -181,47 +407,61 @@ def main():
 
                 st.divider()
                 if st.button("🪄 Gerar Insights de Negócio (IA)", use_container_width=True):
+                    # Preparar contexto completo com COGS
+                    context_insights = {
+                        "fat_bruto": fat_bruto,
+                        "saidas": saidas,
+                        "cogs": total_cogs,
+                        "lucro_real": lucro_real,
+                        "margem_real": margem_real
+                    }
                     with st.spinner("Analisando padrões financeiros..."):
-                        report = finance_agent.generate_deep_analysis(user.id)
+                        report = finance_agent.generate_deep_analysis(user.id, context_insights)
                         st.markdown(report)
 
                 with st.expander("⛔ Zona de Perigo"):
                     st.warning("Estas ações NÃO podem ser desfeitas.")
                     col_z1, col_z2 = st.columns(2)
-                    if col_z1.button("Zerar Vendas/Histórico 🗑️", use_container_width=True):
-                        res = finance_agent.clear_all_transactions(user.id)
-                        if res["success"]: st.toast(res["message"]); st.rerun()
-                    if col_z2.button("Resetar Estoque (600 un.) 🔄", use_container_width=True):
-                        res = finance_agent.reset_inventory(user.id)
-                        if res["success"]: st.toast(res["message"]); st.rerun()
+                    with col_z1:
+                        with st.popover("🗑️ Zerar Vendas/Histórico", use_container_width=True):
+                            st.error("Tem certeza? Todo o histórico financeiro será perdido.")
+                            if st.button("Sim, zerar tudo", type="primary", key="confirm_clear_tx"):
+                                res = finance_agent.clear_all_transactions(user.id)
+                                if res["success"]: st.toast(res["message"]); st.rerun()
+                    with col_z2:
+                        with st.popover("🔄 Resetar Estoque (600 un.)", use_container_width=True):
+                            st.error("Tem certeza? Todo o estoque será resetado para 600 unidades.")
+                            if st.button("Sim, resetar", type="primary", key="confirm_reset_stock"):
+                                res = finance_agent.reset_inventory(user.id)
+                                if res["success"]: st.toast(res["message"]); st.rerun()
 
         with sub_tab_venda:
             st.subheader("💰 Registrar Venda Manual")
             st.info("Utilize este formulário para registrar vendas que não foram importadas automaticamente. O estoque será abatido proporcionalmente.")
-            
+
             # Produtos disponíveis
             if products_list:
                 product_names = [p.title for p in products_list]
                 product_map = {p.title: p for p in products_list}
-                
+
                 with st.form("income_form_new"):
                     v_p_choice = st.selectbox("Selecione o Anúncio", product_names)
                     v_p_obj = product_map[v_p_choice]
-                    
+
                     st.caption(f"Valor de Tabela: R$ {v_p_obj.price:.2f}")
-                    
+
                     vc1, vc2 = st.columns(2)
                     v_val = vc1.number_input(
-                        "Valor Líquido Recebido (R$)", 
-                        min_value=0.0, 
-                        value=0.0, 
-                        step=0.01, 
+                        "Valor Total Recebido (R$)",
+                        min_value=0.0,
+                        value=0.0,
+                        step=0.01,
                         format="%.2f",
-                        help="Digite o valor exato que você recebeu por esta venda."
+                        help="Valor total recebido por todas as unidades vendidas."
                     )
                     v_qty = vc2.number_input("Quantidade Vendida", min_value=1, step=1, value=1)
                     v_date = st.date_input("Data da Venda")
-                    
+
                     if st.form_submit_button("Confirmar Venda e Abater Estoque", type="primary"):
                         res = finance_agent.add_transaction(
                             date=v_date, description=v_p_choice, amount=v_val,
@@ -376,30 +616,65 @@ def main():
         
         with col_c1:
             st.subheader("Responder Cliente")
-            msg = st.text_area("Mensagem do Cliente", placeholder="Ex: O produto chegou quebrado e quero meu dinheiro de volta!")
+            msg = st.text_area("Mensagem do Cliente", placeholder="Ex: O produto chegou quebrado e quero meu dinheiro de volta!", height=120)
             tone = st.select_slider("Tom da Resposta", options=["Formal", "Empático", "Descontraído"], value="Empático")
-            
+
             if st.button("Gerar Resposta ✍️"):
                 if msg:
                     with st.spinner("Escrevendo..."):
                         reply = customer_agent.generate_response(msg, tone)
-                        st.text_area("Sugestão de Resposta:", value=reply, height=150)
-                        st.success("Ajuste se necessário e envie!")
+                        st.session_state.generated_reply = reply
                 else:
                     st.warning("Cole a mensagem do cliente primeiro.")
 
+            # Show response with copy button if generated
+            if "generated_reply" in st.session_state and st.session_state.generated_reply:
+                reply = st.session_state.generated_reply
+                st.text_area("Sugestão de Resposta:", value=reply, height=150, key="reply_area")
+                rcol1, rcol2 = st.columns([1, 4])
+                with rcol1:
+                    if st.button("📋 Copiar Resposta", key="copy_reply"):
+                        st.toast("Copiado! (Ctrl+C no campo acima)", icon="📋")
+                with rcol2:
+                    if st.button("✏️ Refinar", key="refine_reply"):
+                        st.session_state.generated_reply = customer_agent.generate_response(
+                            f"{msg}\n\n[Minha resposta anterior foi: '{reply}'. Refine-a para ficar ainda melhor.]",
+                            tone
+                        )
+                        st.rerun()
+                st.success("Ajuste se necessário e envie para o cliente!")
+
         with col_c2:
             st.subheader("Analisador de Sentimento")
-            reviews_input = st.text_area("Cole aqui várias avaliações (uma por linha)", height=150, placeholder="Amei o produto!\nDemorou muito para chegar.\nQualidade excelente.")
-            
+            st.caption("Cole avaliações de clientes (texto livre, separando cada avaliação por linha ou parágrafo).")
+            reviews_input = st.text_area("Avaliações dos Clientes", height=150,
+                placeholder="Ex: Amei o produto! Chegou super rápido.\nDemorou muito para chegar, mas veio bem embalado.\nQualidade excelente, recomendo!",
+                help="Cole as avaliações livres. Separe cada uma por linha ou parágrafo.")
+
             if st.button("Analisar Sentimento 🧠"):
                 if reviews_input:
-                    reviews_list = [r for r in reviews_input.split('\n') if r.strip()]
+                    # Split by newlines, filter empties — works for both one-per-line and free text
+                    reviews_list = [r.strip() for r in reviews_input.replace('\r\n', '\n').split('\n') if r.strip()]
+                    if len(reviews_list) == 1 and reviews_list[0] == reviews_input.strip():
+                        # Single block of text with no line breaks — treat as one review
+                        pass
                     with st.spinner("Lendo mentes..."):
                         result = customer_agent.analyze_sentiment(reviews_list)
-                        st.markdown(result["analysis"])
+                        st.session_state.sentiment_result = result["analysis"]
                 else:
                     st.warning("Insira algumas avaliações.")
+
+            # Show result with copy button
+            if "sentiment_result" in st.session_state and st.session_state.sentiment_result:
+                analysis_html = f"""
+                <div style="background-color: #1e1e1e; color: #e0e0e0; padding: 15px; border-radius: 8px; font-family: monospace; font-size: 14px; white-space: pre-wrap;">
+                {st.session_state.sentiment_result}
+                </div>
+                """
+                st.markdown("**Resultado da Análise:**")
+                st.markdown(analysis_html, unsafe_allow_html=True)
+                if st.button("📋 Copiar Análise", key="copy_sentiment"):
+                    st.toast("Análise copiada! (Ctrl+C no campo acima)", icon="📋")
 
 
     with tab5:
@@ -505,25 +780,31 @@ def main():
                 total_cogs_vendas += ad_cogs
                 total_receita_real += ad_receita
 
-        sub_tab_vendas, sub_tab_estoque = st.tabs(["📊 Desempenho de Vendas", "🏬 Estoque de Potes (Físico)"])
+        sub_tab_vendas, sub_tab_estoque, sub_tab_calc = st.tabs(["📊 Desempenho de Vendas", "🏬 Estoque de Potes", "🧮 Calculadora de Preços"])
 
         with sub_tab_vendas:
             st.subheader("Performance Comercial")
-            
+
             if products:
-                # KPIs com margem de lucro
+                # KPIs com métricas avançadas
                 total_lucro = total_receita_real - total_cogs_vendas
                 total_margem = (total_lucro / total_receita_real * 100) if total_receita_real > 0 else 0.0
-                
-                c1, c2, c3, c4 = st.columns(4)
+                ticket_medio = (total_receita_real / total_variantes_vendidas) if total_variantes_vendidas > 0 else 0.0
+                roi = ((total_lucro / total_cogs_vendas) * 100) if total_cogs_vendas > 0 else 0.0
+                valor_por_kit = (total_receita_real / total_variantes_vendidas) if total_variantes_vendidas > 0 else 0.0
+
+                c1, c2, c3, c4, c5 = st.columns(5)
                 c1.metric("Kits Vendidos", f"{total_variantes_vendidas}")
-                c2.metric("Receita Real", f"R$ {total_receita_real:,.2f}", help="Valor efetivamente recebido (com cupons, taxas, etc)")
-                c3.metric("Custo (COGS)", f"R$ {total_cogs_vendas:,.2f}", help="Custo do fornecedor")
-                
-                lucro_delta = f"{total_margem:.1f}% margem"
-                c4.metric("Lucro Real", f"R$ {total_lucro:,.2f}", delta=lucro_delta, 
-                         delta_color="normal" if total_lucro >= 0 else "inverse")
-                
+                c2.metric("Custo (COGS)", f"R$ {total_cogs_vendas:,.2f}", help="Custo do fornecedor")
+                c3.metric("Ticket Médio", f"R$ {ticket_medio:,.2f}", help="Valor médio por kit vendido")
+                c4.metric("Margem %", f"{total_margem:.1f}%", 
+                         delta="Saudável" if total_margem >= 20 else ("Atenção" if total_margem >= 10 else "Crítico"))
+                c5.metric("ROI", f"{roi:.0f}%", help="Retorno sobre investimento")
+
+                # Métricas secundárias
+                m1, m2 = st.columns(2)
+                m1.metric("Valor por Kit", f"R$ {valor_por_kit:,.2f}", help="Receita média unitária")
+
                 st.divider()
                 
                 st.markdown("""
@@ -595,11 +876,87 @@ def main():
                 st.info("Nenhum anúncio mapeado.")
                 
         with sub_tab_estoque:
-            st.subheader("🏬 Inventário de Potes Físicos")
+            st.subheader("🏬 Inventário de Potes")
+            
+            # Filtro de período com calendário (dia 15 a 14 do mês seguinte)
+            from datetime import datetime, timedelta
+            today = datetime.now()
+            
+            # Período padrão: dia 15 do mês passado até dia 14 do mês atual
+            if today.day >= 15:
+                start_date_default = today.replace(day=15)
+            else:
+                if today.month == 1:
+                    start_date_default = today.replace(year=today.year-1, month=12, day=15)
+                else:
+                    start_date_default = today.replace(month=today.month-1, day=15)
+            end_date_default = today.replace(day=14)
+            
+            col_date1, col_date2 = st.columns(2)
+            with col_date1:
+                start_date = st.date_input(
+                    "Data Início",
+                    value=start_date_default,
+                    help="Período de pagamento fornecedor: dia 15"
+                )
+            with col_date2:
+                end_date = st.date_input(
+                    "Data Fim",
+                    value=end_date_default
+                )
+            
+            # Garantir que end_date seja datetime para comparação
+            if isinstance(end_date, datetime):
+                end_date = end_date + timedelta(days=1)  # Inclui o dia todo
+            else:
+                end_date = datetime.combine(end_date, datetime.max.time()) + timedelta(days=1)
+            
+            # Converter start_date para datetime se necessário
+            if not isinstance(start_date, datetime):
+                start_date = datetime.combine(start_date, datetime.min.time())
+            
+            # Filtrar transações do período
+            period_transactions = [t for t in income_transactions 
+                                   if t.date and start_date <= t.date < end_date]
+            
+            # Calcular métricas do período
+            period_potes_vendidos = 0
+            period_cogs = 0.0
+            
+            for txn in period_transactions:
+                if txn.product_id:
+                    product = next((p for p in products if p.id == txn.product_id), None)
+                    if product and hasattr(product, 'components') and product.components:
+                        for comp in product.components:
+                            inv_item = next((i for i in inventory_items if i.id == comp.inventory_item_id), None)
+                            if inv_item:
+                                potes = txn.quantity * (comp.quantity or 1)
+                                period_potes_vendidos += potes
+                                period_cogs += potes * (inv_item.supplier_price or 0.0)
+                    elif product:
+                        period_potes_vendidos += txn.quantity
+                        period_cogs += txn.quantity * (product.supplier_price or 0.0)
+            
             if inventory_items:
-                c1, c2 = st.columns(2)
-                c1.metric("Potes Vendidos (Real)", f"{total_potes_vendidos} un.", help="Soma física de todos os potes de todos os kits")
-                c2.metric("COGS (Custo de Venda)", f"R$ {total_cogs_vendas:,.2f}", delta="-Saída", delta_color="inverse")
+                display_start = start_date.date() if isinstance(start_date, datetime) else start_date
+                display_end = (end_date - timedelta(days=1)).date() if isinstance(end_date, datetime) else end_date
+                c1, c2, c3, c4 = st.columns(4)
+                c1.metric("Potes Vendidos (Período)", f"{period_potes_vendidos} un.", help=f"Período: {display_start.strftime('%d/%m')} - {display_end.strftime('%d/%m')}")
+                c2.metric("COGS (Período)", f"R$ {period_cogs:,.2f}", help=f"Custo no período selecionado")
+                c3.metric("Potes Vendidos (Total)", f"{total_potes_vendidos} un.", help="Soma de todos os tempos")
+                c4.metric("COGS (Total)", f"R$ {total_cogs_vendas:,.2f}", help="Custo total de todas as vendas")
+                
+                # Calcular potes vendidos por item no período
+                potes_por_item_periodo = {item.id: 0 for item in inventory_items}
+                for txn in period_transactions:
+                    if txn.product_id:
+                        product = next((p for p in products if p.id == txn.product_id), None)
+                        if product and hasattr(product, 'components') and product.components:
+                            for comp in product.components:
+                                if comp.inventory_item_id in potes_por_item_periodo:
+                                    potes_por_item_periodo[comp.inventory_item_id] += txn.quantity * (comp.quantity or 1)
+                        elif product:
+                            potes_por_item_periodo[product.id if product.id in potes_por_item_periodo else 0] += txn.quantity
                 
                 df_inv = pd.DataFrame([{
                     "ID": item.id,
@@ -607,7 +964,8 @@ def main():
                     "Estoque Atual": item.stock,
                     "Estoque Mínimo": item.min_stock,
                     "Custo": item.supplier_price,
-                    "Potes Vendidos": vendidos_por_item.get(item.id, 0)
+                    "Potes Vendidos (Mês)": potes_por_item_periodo.get(item.id, 0),
+                    "Potes Vendidos (Total)": vendidos_por_item.get(item.id, 0)
                 } for item in inventory_items])
 
                 st.info("💡 O estoque é controlado centralmente pelo **Estoque de Potes Físicos**. Os anúncios virtuais (Shopee) apenas refletem essa disponibilidade.")
@@ -621,7 +979,8 @@ def main():
                         "ID": None,
                         "Custo": st.column_config.NumberColumn(format="R$ %.2f"),
                         "Estoque Atual": st.column_config.NumberColumn(disabled=True),
-                        "Potes Vendidos": st.column_config.NumberColumn(disabled=True)
+                        "Potes Vendidos (Mês)": st.column_config.NumberColumn(disabled=True),
+                        "Potes Vendidos (Total)": st.column_config.NumberColumn(disabled=True)
                     },
                     hide_index=True, use_container_width=True, key="inv_ed"
                 )
@@ -647,6 +1006,100 @@ def main():
                         session.add(InventoryItem(name=ni_name, supplier_price=ni_cost, stock=600, initial_stock=600, min_stock=ni_min, user_id=user.id))
                         session.commit()
                     st.success("Adicionado!"); st.rerun()
+
+        with sub_tab_calc:
+            st.subheader("🧮 Simulador de Precificação e Lucro")
+            st.info("Utilize esta calculadora para planejar seus preços antes de publicar os anúncios, analisando todas as taxas da Shopee, impostos e custos de fornecedor.")
+            
+            col_in, col_out = st.columns([1, 1], gap="large")
+            
+            with col_in:
+                st.markdown("### 📥 Parâmetros do Anúncio")
+                
+                c_p1, c_p2 = st.columns(2)
+                calc_cost = c_p1.number_input("Custo Fornecedor (unit.) R$", min_value=0.0, value=15.0, step=1.0, format="%.2f", help="Valor pago pelo item físico")
+                calc_price = c_p2.number_input("Preço de Venda R$", min_value=0.0, value=35.0, step=1.0, format="%.2f", help="Valor total da venda (independente da quantidade)")
+                
+                c_q1, c_q2, c_q3 = st.columns(3)
+                calc_qty = c_q1.number_input("Qtd no Pedido", min_value=1, value=1, step=1, help="Simula cliente comprando + de 1 unidade")
+                calc_coupon_pct = c_q2.number_input("Cupom da Loja (%)", min_value=0.0, value=0.0, step=1.0, format="%.1f", help="Desconto percentual dado por você")
+                calc_other_discount_pct = c_q3.number_input("Outros Desc. (%)", min_value=0.0, value=0.0, step=1.0, format="%.1f", help="Promoções como Leve mais por Menos")
+                
+                st.markdown("### 💸 Taxas e Encargos")
+                
+                c_t1, c_t2 = st.columns(2)
+                calc_shopee_pct = c_t1.selectbox("Tarifa Shopee (%)", options=[20.0, 14.0], format_func=lambda x: f"{x}% (Frete Grátis)" if x == 20 else f"{x}% (Padrão)", help="Comissão + Taxa de Transação (2%)")
+                calc_shopee_fixed = c_t2.number_input("Taxa Fixa (por item) R$", min_value=0.0, value=4.0, step=0.5, format="%.2f", help="R$ 4,00 por item. Limitado a R$100 totais.")
+                
+                c_t3, c_t4 = st.columns(2)
+                calc_ads_pct = c_t3.number_input("Recarga Automática Ads (%)", min_value=0.0, value=10.0, step=1.0, help="Porcentagem de ads do pedido")
+                calc_simples_pct = c_t4.number_input("Simples Nacional (%)", min_value=0.0, value=4.0, step=0.5)
+                
+                calc_extra = st.number_input("Custos Extras (Embalagem, etc) R$", min_value=0.0, value=0.0, step=1.0, format="%.2f", help="Custo por pedido")
+                
+            with col_out:
+                st.markdown("### 📈 Resultados e Saúde Financeira")
+                
+                gross_revenue = calc_price
+                
+                # Cálculo em cascata (Sequencial como a Shopee)
+                # 1. Aplica o desconto de combo/outros primeiro
+                calc_other_discount = gross_revenue * (calc_other_discount_pct / 100.0)
+                revenue_after_other = gross_revenue - calc_other_discount
+                
+                # 2. Aplica o cupom da loja sobre o valor restante
+                calc_coupon = revenue_after_other * (calc_coupon_pct / 100.0)
+                
+                total_descontos_loja = calc_other_discount + calc_coupon
+                net_revenue_base = gross_revenue - total_descontos_loja
+                
+                if net_revenue_base < 0: net_revenue_base = 0.0
+                
+                comissao_shopee = net_revenue_base * (calc_shopee_pct / 100.0)
+                taxa_fixa_shopee = calc_shopee_fixed * calc_qty
+                if taxa_fixa_shopee > 100.0: taxa_fixa_shopee = 100.0
+                
+                custo_ads = net_revenue_base * (calc_ads_pct / 100.0)
+                custo_imposto = net_revenue_base * (calc_simples_pct / 100.0)
+                custo_fornecedor_total = calc_cost * calc_qty
+                
+                total_deductions = total_descontos_loja + comissao_shopee + taxa_fixa_shopee + custo_ads + custo_imposto + custo_fornecedor_total + calc_extra
+                net_profit = gross_revenue - total_deductions
+                
+                profit_margin = (net_profit / gross_revenue * 100.0) if gross_revenue > 0 else 0.0
+                roi = (net_profit / custo_fornecedor_total * 100.0) if custo_fornecedor_total > 0 else 0.0
+                repasse_shopee = net_revenue_base - comissao_shopee - taxa_fixa_shopee - custo_ads
+                
+                margin_color = "🟢 Excelente" if profit_margin >= 20 else ("🟡 Atenção" if profit_margin >= 10 else "🔴 Crítico/Prejuízo")
+                
+                st.metric("Lucro Líquido Real", f"R$ {net_profit:,.2f}", f"{profit_margin:.1f}% Margem ({margin_color})")
+                
+                m1, m2 = st.columns(2)
+                m1.metric("ROI", f"{roi:.0f}%", help="Retorno sobre o Custo do Produto")
+                m2.metric("Repasse da Shopee", f"R$ {repasse_shopee:,.2f}", help="Valor que efetivamente cairá na sua conta da Shopee")
+                
+                st.divider()
+                st.markdown("**Detalhamento Financeiro do Pedido:**")
+                st.markdown(f"""
+                <div style="font-family: monospace; font-size: 14px; background-color: #1e1e1e; color: #e0e0e0; padding: 15px; border-radius: 8px;">
+                    <div style="display: flex; justify-content: space-between;"><span>Subtotal dos Produtos ({calc_qty}x):</span> <span>R$ {gross_revenue:,.2f}</span></div>
+                    <div style="display: flex; justify-content: space-between; color: #ffab91;"><span>Cupons & descontos (Loja):</span> <span>- R$ {total_descontos_loja:,.2f}</span></div>
+                    <div style="display: flex; justify-content: space-between; font-weight: bold; border-top: 1px solid #424242; margin-top: 5px; padding-top: 5px;"><span>Base para Taxas Shopee:</span> <span>R$ {net_revenue_base:,.2f}</span></div>
+                    <br>
+                    <div style="display: flex; justify-content: space-between; color: #ffab91;"><span>Taxas e Encargos Shopee:</span> <span>- R$ {comissao_shopee + taxa_fixa_shopee + custo_ads:,.2f}</span></div>
+                    <div style="display: flex; justify-content: space-between; color: #ffab91; padding-left: 15px; font-size: 12px;"><span>↳ Tarifa Shopee ({calc_shopee_pct}%):</span> <span>- R$ {comissao_shopee:,.2f}</span></div>
+                    <div style="display: flex; justify-content: space-between; color: #ffab91; padding-left: 15px; font-size: 12px;"><span>↳ Taxa por item vendido ({calc_qty}x):</span> <span>- R$ {taxa_fixa_shopee:,.2f}</span></div>
+                    <div style="display: flex; justify-content: space-between; color: #ffab91; padding-left: 15px; font-size: 12px;"><span>↳ Recarga Automática Ads ({calc_ads_pct}%):</span> <span>- R$ {custo_ads:,.2f}</span></div>
+                    <br>
+                    <div style="display: flex; justify-content: space-between; color: #ffab91;"><span>Simples Nacional ({calc_simples_pct}%):</span> <span>- R$ {custo_imposto:,.2f}</span></div>
+                    <div style="display: flex; justify-content: space-between; color: #ffab91;"><span>Custos Extras:</span> <span>- R$ {calc_extra:,.2f}</span></div>
+                    <div style="display: flex; justify-content: space-between; color: #64b5f6;"><span>Custo Fornecedor ({calc_qty}x):</span> <span>- R$ {custo_fornecedor_total:,.2f}</span></div>
+                    <div style="display: flex; justify-content: space-between; font-weight: bold; border-top: 1px solid #424242; margin-top: 5px; padding-top: 5px; font-size: 16px;">
+                        <span>Lucro Líquido Real:</span> 
+                        <span style="color: {'#81c784' if net_profit > 0 else '#e57373'}">R$ {net_profit:,.2f}</span>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
 
 
         st.divider()
@@ -867,8 +1320,11 @@ def main():
                 else:
                     st.info("Catálogo vazio.")
 
-
     with tab6:
+        from dashboard.components.competitor_view import render_competitor_page
+        render_competitor_page(user.id)
+
+    with tab7:
         from dashboard.components.settings_view import render_settings_page
         render_settings_page()
 

@@ -1,11 +1,12 @@
 from agents.base_agent import BaseAgent
 from core.llm_client import llm_client
 from core.database.engine import get_session
-from core.database.models import Transaction, User, Product
+from core.database.models import Transaction, User, Product, ProductComponent, InventoryItem
 from core.sales_service import SalesService
 from sqlmodel import select, Session
+from sqlalchemy.orm import selectinload
 import pandas as pd
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from datetime import datetime
 import json
 import re
@@ -255,7 +256,7 @@ Se o arquivo estiver vazio ou não contiver vendas válidas, retorne: []"""
         except Exception as e:
             return {"success": False, "message": f"Erro ao atualizar: {str(e)}"}
 
-    def generate_deep_analysis(self, user_id: int) -> str:
+    def generate_deep_analysis(self, user_id: int, context_cogs: dict = None) -> str:
         """Generates a comprehensive financial report using LLM."""
         stats = self.get_financial_stats(user_id)
         if stats["transaction_count"] == 0:
@@ -267,22 +268,37 @@ Se o arquivo estiver vazio ou não contiver vendas válidas, retorne: []"""
         for t in transactions:
             if t.type == "INCOME" and t.description:
                 sales_data[t.description] = sales_data.get(t.description, 0) + t.amount
-        
+
         # Sort Top/Bottom
         sorted_sales = sorted(sales_data.items(), key=lambda x: x[1], reverse=True)
         top_selling = sorted_sales[:3]
         least_selling = sorted_sales[-3:] if len(sorted_sales) > 3 else []
-        
+
+        # Usar COGS real se fornecido, senao usar o calculado simples
+        if context_cogs:
+            fat_bruto = context_cogs.get('fat_bruto', stats['total_revenue'])
+            saidas = context_cogs.get('saidas', stats['total_expenses'])
+            cogs = context_cogs.get('cogs', 0)
+            lucro_real = context_cogs.get('lucro_real', stats['net_profit'])
+            margem_real = context_cogs.get('margem_real', stats['margin'])
+        else:
+            fat_bruto = stats['total_revenue']
+            saidas = stats['total_expenses']
+            cogs = 0
+            lucro_real = stats['net_profit']
+            margem_real = stats['margin']
+
         # Construct Context
         context = f"""
-        FATURAMENTO TOTAL: R$ {stats['total_revenue']:.2f}
-        CUSTOS TOTAIS: R$ {stats['total_expenses']:.2f}
-        LUCRO LÍQUIDO: R$ {stats['net_profit']:.2f}
-        MARGEM DE LUCRO: {stats['margin']:.2f}%
-        
+        FATURAMENTO BRUTO: R$ {fat_bruto:.2f}
+        SAÍDAS (Despesas/Ads): R$ {saidas:.2f}
+        COGS (Custo dos Produtos Vendidos): R$ {cogs:.2f}
+        LUCRO REAL: R$ {lucro_real:.2f}
+        MARGEM REAL: {margem_real:.2f}%
+
         TOP 3 PRODUTOS (Mais Vendidos):
         {', '.join([f'{p[0]} (R$ {p[1]:.2f})' for p in top_selling])}
-        
+
         BOTTOM 3 PRODUTOS (Menos Vendidos):
         {', '.join([f'{p[0]} (R$ {p[1]:.2f})' for p in least_selling])}
         """
@@ -302,6 +318,147 @@ Se o arquivo estiver vazio ou não contiver vendas válidas, retorne: []"""
         """
         
         return llm_client.generate_content(prompt)
+
+    def calculate_order_profit(
+        self,
+        gross_revenue: float,
+        product_cost: float,
+        quantity: int = 1,
+        discount: float = 0.0,
+        shopee_fee_pct: float = 18.0,
+        shopee_fixed_fee: float = 5.0,
+        ads_pct: float = 15.0,
+        tax_pct: float = 6.0,
+        extra_costs: float = 0.0
+    ) -> Dict[str, Any]:
+        """
+        Centralized per-order profit calculation.
+        Calculates net profit after all Shopee fees, taxes, ads, product costs.
+        Replaces the duplicated calculator logic in dashboard/main.py.
+        
+        Returns a dict with all line items for display or further use.
+        """
+        net_revenue_base = gross_revenue - discount
+
+        comissao_shopee = net_revenue_base * (shopee_fee_pct / 100.0)
+        taxa_fixa = min(shopee_fixed_fee * quantity, 100.0)
+        custo_ads = net_revenue_base * (ads_pct / 100.0)
+        custo_imposto = net_revenue_base * (tax_pct / 100.0)
+        custo_produto = product_cost * quantity
+
+        total_deductions = discount + comissao_shopee + taxa_fixa + custo_ads + custo_imposto + custo_produto + extra_costs
+        net_profit = gross_revenue - total_deductions
+        profit_margin = (net_profit / gross_revenue * 100.0) if gross_revenue > 0 else 0.0
+
+        return {
+            "gross_revenue": gross_revenue,
+            "net_revenue_base": net_revenue_base,
+            "discount": discount,
+            "shopee_commission": comissao_shopee,
+            "shopee_fixed_fee": taxa_fixa,
+            "ads_cost": custo_ads,
+            "tax_cost": custo_imposto,
+            "product_cost": custo_produto,
+            "extra_costs": extra_costs,
+            "total_deductions": total_deductions,
+            "net_profit": net_profit,
+            "profit_margin": profit_margin,
+            "roi": (net_profit / custo_produto * 100.0) if custo_produto > 0 else 0.0
+        }
+
+    def get_top_products(self, user_id: int, limit: int = 5,
+                         start_date: Optional[datetime] = None,
+                         end_date: Optional[datetime] = None) -> List[Dict[str, Any]]:
+        """Returns top-selling products by revenue from transactions.
+        Optionally filtered by date range (inclusive)."""
+        session = next(get_session())
+        filters = [
+            Transaction.user_id == user_id,
+            Transaction.type == "INCOME",
+            Transaction.product_id.isnot(None)
+        ]
+        if start_date and end_date:
+            filters.append(Transaction.date.between(start_date, end_date))
+        statement = select(Transaction).where(*filters).order_by(Transaction.amount.desc())
+        transactions = session.exec(statement).all()
+
+        product_sales: Dict[int, Dict] = {}
+        for t in transactions:
+            pid = t.product_id
+            if pid not in product_sales:
+                product_sales[pid] = {
+                    "product_id": pid,
+                    "product_title": t.description,
+                    "total_revenue": 0.0,
+                    "total_quantity": 0,
+                    "transaction_count": 0
+                }
+            product_sales[pid]["total_revenue"] += t.amount
+            product_sales[pid]["total_quantity"] += t.quantity or 1
+            product_sales[pid]["transaction_count"] += 1
+
+        # Fetch product titles for proper names
+        sorted_products = sorted(product_sales.values(), key=lambda x: x["total_revenue"], reverse=True)
+        for p in sorted_products:
+            prod = session.get(Product, p["product_id"])
+            if prod:
+                p["product_title"] = prod.title
+
+        return sorted_products[:limit]
+
+    def get_top_products_by_potes(self, user_id: int, limit: int = 10,
+                                   start_date: Optional[datetime] = None,
+                                   end_date: Optional[datetime] = None) -> List[Dict[str, Any]]:
+        """Returns top products grouped by base name, ranked by potes sold.
+        Optionally filtered by date range (inclusive)."""
+        session = next(get_session())
+        filters = [
+            Transaction.user_id == user_id,
+            Transaction.type == "INCOME",
+            Transaction.product_id.isnot(None)
+        ]
+        if start_date and end_date:
+            filters.append(Transaction.date.between(start_date, end_date))
+        transactions = session.exec(select(Transaction).where(*filters)).all()
+
+        kits_por_produto: Dict[int, int] = {}
+        for t in transactions:
+            pid = t.product_id
+            kits_por_produto[pid] = kits_por_produto.get(pid, 0) + (t.quantity or 1)
+
+        produtos = session.exec(
+            select(Product).options(selectinload(Product.components)).where(Product.user_id == user_id)
+        ).all()
+
+        inventory_items = session.exec(
+            select(InventoryItem).where(InventoryItem.user_id == user_id)
+        ).all()
+
+        grupos: Dict[str, int] = {}
+        for p in produtos:
+            kits = kits_por_produto.get(p.id, 0)
+            if kits == 0:
+                continue
+
+            base_name = re.sub(r' - \d+x$', '', p.title.strip()).strip()
+
+            potes = 0
+            if hasattr(p, 'components') and p.components:
+                for comp in p.components:
+                    inv_item = next((i for i in inventory_items if i.id == comp.inventory_item_id), None)
+                    if inv_item:
+                        potes += kits * (comp.quantity or 1)
+            else:
+                potes = kits
+
+            grupos[base_name] = grupos.get(base_name, 0) + potes
+
+        result = sorted(grupos.items(), key=lambda x: x[1], reverse=True)
+        session.close()
+        return [
+            {"product_title": name, "total_potes": potes}
+            for name, potes in result[:limit]
+        ]
 
     def run(self, user_id: int):
         """Default run method required by BaseAgent."""

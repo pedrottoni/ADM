@@ -77,12 +77,36 @@ class Product(SQLModel, table=True):
     price: float = Field(default=0.0)
     supplier_price: float = Field(default=0.0)
     stock: int = Field(default=0)
-    initial_stock: int = Field(default=100) # Estoque Inicial padrão 100
+    initial_stock: int = Field(default=100)
     sku: Optional[str] = None
     shopee_id: Optional[str] = None
     category: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
-    
+
     user_id: Optional[int] = Field(default=None, foreign_key="user.id")
     variations: List[ProductVariation] = Relationship(back_populates="product", cascade_delete=True)
     components: List[ProductComponent] = Relationship(back_populates="product", cascade_delete=True)
+    competitor_listings: List["CompetitorListing"] = Relationship(back_populates="product", cascade_delete=True)
+
+
+class CompetitorListing(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    product_id: int = Field(foreign_key="product.id", index=True)
+    marketplace: str = Field(index=True)
+    competitor_title: str
+    competitor_price: float
+    competitor_seller: Optional[str] = None
+    our_price_at_time: float = Field(default=0.0)
+    price_before_discount: Optional[float] = None
+    shipping_cost: Optional[float] = None
+    product_url: str
+    marketplace_id: Optional[str] = None
+    rating: Optional[float] = None
+    sold_count: Optional[int] = None
+    seller_location: Optional[str] = None
+    is_confirmed_match: bool = Field(default=False)
+    confidence_score: Optional[str] = None
+    last_checked_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+    product: Optional[Product] = Relationship(back_populates="competitor_listings")

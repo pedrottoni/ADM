@@ -4,7 +4,11 @@ from core.config import Config
 
 def render_settings_page():
     st.header("⚙️ Configurações de IA")
-    
+
+    if not llm_client.enabled:
+        st.warning("🤖 A conexão com IA está **desativada**. Ative-a no botão 🤖 IA no topo da página para usar os recursos de IA.")
+        st.divider()
+
     # 1. Select Provider
     provider = st.selectbox(
         "Provedor de IA",
@@ -15,6 +19,7 @@ def render_settings_page():
     # Update global client if changed
     if provider != llm_client.provider:
         llm_client.update_settings(provider, None)
+        Config.set_llm_settings(provider, llm_client.model_name)
         st.toast(f"Provedor alterado para {provider}!")
 
     # 2. Show masked key check and Edit Form
@@ -64,15 +69,18 @@ def render_settings_page():
 
     # 3. Model Selection
     available_models = llm_client.get_available_models()
+    current_model = llm_client.model_name or available_models[0] if available_models else None
+    model_index = available_models.index(current_model) if current_model and current_model in available_models else 0
     selected_model = st.selectbox(
-        "Modelo", 
+        "Modelo",
         available_models,
-        index=0 if available_models else None
+        index=model_index
     )
-    
+
     # Update model if changed
     if selected_model and selected_model != llm_client.model_name:
         llm_client.update_settings(provider, selected_model)
+        Config.set_llm_settings(provider, selected_model)
 
     # 4. Connectivity Test
     st.divider()
@@ -96,3 +104,27 @@ def render_settings_page():
     if st.session_state.get("last_test_response"):
         with st.expander("Ver detalhes da resposta"):
             st.code(st.session_state.last_test_response)
+
+    # ── Admin / Dev Tools (moved from sidebar) ──
+    st.divider()
+    with st.expander("🛠️ Ferramentas de Admin / Dev"):
+        st.caption("Use com cuidado — ações administrativas do sistema.")
+        if st.button("🔄 Recarregar Módulos e Limpar Cache"):
+            import importlib
+            import sys
+            import agents.finance_agent
+            import agents.product_agent
+            import agents.ads_agent
+
+            # Force reload of agent modules
+            importlib.reload(sys.modules['agents.finance_agent'])
+            importlib.reload(sys.modules['agents.product_agent'])
+            if 'agents.ads_agent' in sys.modules:
+                importlib.reload(sys.modules['agents.ads_agent'])
+
+            # Clear Streamlit Cache
+            st.cache_data.clear()
+            st.cache_resource.clear()
+
+            st.toast("Sistema recarregado com sucesso!", icon="✅")
+            st.rerun()

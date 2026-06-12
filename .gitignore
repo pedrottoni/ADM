@@ -36,3 +36,23 @@ venv/
 *.csv
 *.xlsx
 data/raw/
+
+# Browser Sessions (cookies)
+browser_session/
+
+# Database (SQLite) — local data, not versioned
+database.db
+*.sqlite
+*.sqlite3
+
+# IDE / Editor configs
+.qwen/
+.idea/
+*.swp
+*.swo
+
+# Scratch / Temp files
+scratch/
+scripts/
+.DS_Store
+Thumbs.db
