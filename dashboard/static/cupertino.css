@@ -350,27 +350,17 @@ section[data-testid="stSidebar"] label[data-baseweb="toggle"] span {
 }
 
 /* ── Card Markers ───────────────────────────────────────── ── */
-.evolution-card-marker,
-.card-marker-side {
+.evolution-card-marker {
   display: none;
 }
 
-/* Main evolution card — col_main's .stVerticalBlock */
-.stVerticalBlock:has(div.evolution-card-marker) {
+/* Big evolution card — inside st.columns(1) child column */
+.stHorizontalBlock > * > .stVerticalBlock:has(div.evolution-card-marker) {
   background: #1E293B !important;
   border: 1px solid #334155 !important;
   border-radius: 12px !important;
   padding: 1.5rem !important;
   margin-bottom: 0.5rem !important;
-}
-
-/* Side cards — inside st.columns(1) child columns */
-.stHorizontalBlock > * > .stVerticalBlock:has(div.card-marker-side) {
-  background: #1E293B !important;
-  border: 1px solid #334155 !important;
-  border-radius: 12px !important;
-  padding: 1.5rem !important;
-  margin-bottom: 1rem !important;
 }
 
 /* ── Buttons ─────────────────────────────────────────────── */

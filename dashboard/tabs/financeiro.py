@@ -66,31 +66,22 @@ def render(user, agents):
     ])
 
     with sub_tab_dash:
-        # KPIs Principais - 4 colunas
+    # ── KPIs Principais (fora do card) ──
         k1, k2, k3, k4 = st.columns(4)
         with k1: metric_card("Fat. Bruto", f"R$ {fat_bruto:,.2f}")
         with k2: metric_card("Saídas (Custos/Ads)", f"R$ {saidas:,.2f}")
         with k3: metric_card("COGS", f"R$ {total_cogs:,.2f}")
         with k4: metric_card("Lucro Real", f"R$ {lucro_real:,.2f}",
                             delta=f"{margem_real:.1f}%")
-
         if not df_all.empty:
             df_tmp = df_all.copy()
             df_tmp['Date'] = pd.to_datetime(df_tmp['Data'])
-
-            # ── Period Selector ──
-            period_type = st.radio(
-                "Agrupar por:",
-                options=["Anual", "Mensal", "Semanal", "Diário", "Período personalizado"],
-                horizontal=True, index=0, key="finance_period_type"
-            )
-
+            # ── Period type (lido do session_state, definido pelo radio dentro do card) ──
+            period_type = st.session_state.get('finance_period_type', 'Anual')
+            # ── Period grouping ──
             if period_type == "Período personalizado":
-                col_d1, col_d2 = st.columns(2)
-                with col_d1:
-                    p_start = st.date_input("Data Início", key="fin_start")
-                with col_d2:
-                    p_end = st.date_input("Data Fim", key="fin_end")
+                p_start = st.session_state.get('fin_start', pd.Timestamp.now().date())
+                p_end = st.session_state.get('fin_end', pd.Timestamp.now().date())
                 mask = (df_tmp['Date'] >= pd.Timestamp(p_start)) & (df_tmp['Date'] <= pd.Timestamp(p_end))
                 df_tmp = df_tmp[mask]
                 period_group = df_tmp['Date'].dt.strftime('%d-%m-%Y')
@@ -102,28 +93,23 @@ def render(user, agents):
                 period_group = df_tmp['Date'].dt.strftime('%d-%m-%Y')
             else:
                 period_group = df_tmp['Date'].dt.strftime('%Y-%m')
-
             if not df_tmp.empty:
                 df_tmp['Período'] = period_group
                 chart_data = df_tmp.groupby(['Período', 'Tipo'])['Valor'].sum().reset_index()
-
-                # ── Layout: Main chart (2/3) + Side cards (1/3) ──
-                col_main, col_side = st.columns([2, 1], gap="medium")
-
                 income_total = chart_data[chart_data['Tipo'] == 'INCOME']['Valor'].sum()
                 expense_total = chart_data[chart_data['Tipo'] == 'EXPENSE']['Valor'].sum()
                 net_total = income_total - expense_total
                 net_margem = (net_total / income_total * 100) if income_total > 0 else 0
-
                 # ================================================================
-                # LEFT COLUMN — Evolução Financeira
-                # Styled as card via CSS marker on col_main's .stVerticalBlock
+                # BIG CARD — Evolução Financeira (wraps everything)
                 # ================================================================
-                with col_main:
+                big_card = st.columns(1)[0]
+                with big_card:
                     st.markdown(
                         '<div class="evolution-card-marker" style="display:none"></div>',
                         unsafe_allow_html=True,
                     )
+                    # ── Header ──
                     st.markdown(f"""
                     <div class="chart-card-header">
                         <div class="chart-card-header-left">
@@ -143,72 +129,55 @@ def render(user, agents):
                         </span>
                     </div>
                     """, unsafe_allow_html=True)
-
-                    chart_display = chart_data.copy()
-                    chart_display['Tipo'] = chart_display['Tipo'].replace({'EXPENSE': 'Despesas', 'INCOME': 'Receitas'})
-
-                    fig = px.bar(chart_display, x='Período', y='Valor', color='Tipo',
-                                 color_discrete_map={"Despesas": "#F87171", "Receitas": "#818CF8"},
-                                 barmode='relative', height=400)
-                    fig.update_layout(
-                        margin=dict(l=10, r=10, t=10, b=10),
-                        showlegend=False,
-                        paper_bgcolor='rgba(0,0,0,0)',
-                        plot_bgcolor='rgba(0,0,0,0)',
-                        font=dict(color='#94A3B8', size=11),
-                        hovermode='x unified',
-                    )
-                    fig.update_xaxes(type='category', tickangle=0, gridcolor='#334155',
-                                     title_text='', showticklabels=True)
-                    fig.update_yaxes(gridcolor='#334155', title_text='', showticklabels=True)
-
-                    event = st.plotly_chart(fig, on_select="rerun", use_container_width=True)
-
-                # ── Extract selection (AFTER columns, not inside card) ──
-                sel_points = None
-                if event is not None:
-                    raw_sel = event.get("selection", {}) if isinstance(event, dict) else getattr(event, "selection", None) or {}
-                    sel_points = raw_sel.get("points", []) if isinstance(raw_sel, dict) else getattr(raw_sel, "points", [])
-
-                # ================================================================
-                # RIGHT COLUMN — Two Cards
-                # Each in its own st.columns(1) for isolated card styling
-                # ================================================================
-                with col_side:
-                    # ── Card A: Lucro Líquido por Período ──
-                    card_a = st.columns(1)[0]
-                    with card_a:
-                        st.markdown(
-                            '<div class="card-marker-side" style="display:none"></div>',
-                            unsafe_allow_html=True,
+                    # ── Main content: [2,1] columns ──
+                    col_bar, col_side = st.columns([2, 1], gap="medium")
+                    # ── Left: Stacked Bar Chart ──
+                    with col_bar:
+                        chart_display = chart_data.copy()
+                        chart_display['Tipo'] = chart_display['Tipo'].replace({'EXPENSE': 'Despesas', 'INCOME': 'Receitas'})
+                        fig = px.bar(chart_display, x='Período', y='Valor', color='Tipo',
+                                     color_discrete_map={"Despesas": "#F87171", "Receitas": "#818CF8"},
+                                     barmode='relative', height=400)
+                        fig.update_layout(
+                            margin=dict(l=10, r=10, t=10, b=10),
+                            showlegend=False,
+                            paper_bgcolor='rgba(0,0,0,0)',
+                            plot_bgcolor='rgba(0,0,0,0)',
+                            font=dict(color='#94A3B8', size=11),
+                            hovermode='x unified',
                         )
-
+                        fig.update_xaxes(type='category', tickangle=0, gridcolor='#334155',
+                                         title_text='', showticklabels=True)
+                        fig.update_yaxes(gridcolor='#334155', title_text='', showticklabels=True)
+                        event = st.plotly_chart(fig, on_select="rerun", use_container_width=True)
+                    # ── Right: Side Cards ──
+                    with col_side:
+                        # ── Lucro Líquido ──
                         income_by_period = chart_data[chart_data['Tipo'] == 'INCOME'][['Período', 'Valor']].rename(columns={'Valor': 'Income'})
                         expense_by_period = chart_data[chart_data['Tipo'] == 'EXPENSE'][['Período', 'Valor']].rename(columns={'Valor': 'Expense'})
                         net_df = income_by_period.merge(expense_by_period, on='Período', how='outer').fillna(0)
                         net_df['Lucro'] = net_df['Income'] - net_df['Expense']
                         net_df['Período'] = pd.Categorical(net_df['Período'], categories=net_df['Período'].unique(), ordered=True)
                         net_df = net_df.sort_values('Período').reset_index(drop=True)
-
                         total_net = net_df['Lucro'].sum()
                         net_pos = total_net >= 0
                         net_pct = abs(total_net / income_total * 100) if income_total > 0 else 0
-
                         st.markdown(f"""
-                        <div class="chart-card-header" style="margin-bottom:0.5rem">
-                            <div class="chart-card-header-left">
-                                <span class="chart-card-title">📊 Lucro Líquido</span>
-                                <div class="chart-card-value-row">
-                                    <span class="chart-card-value" style="font-size:1.25rem">R$ {total_net:,.2f}</span>
-                                    <span class="chart-card-delta" style="background:{'#166534' if net_pos else '#7f1d1d'};color:{'#86efac' if net_pos else '#fca5a5'}">
-                                        {'▲' if net_pos else '▼'} {net_pct:.1f}%
-                                    </span>
+                        <div style="margin-bottom:0.5rem">
+                            <div style="display:flex;justify-content:space-between;align-items:flex-start">
+                                <div>
+                                    <div class="chart-card-title">📊 Lucro Líquido</div>
+                                    <div class="chart-card-value-row">
+                                        <span class="chart-card-value" style="font-size:1.25rem">R$ {total_net:,.2f}</span>
+                                        <span class="chart-card-delta" style="background:{'#166534' if net_pos else '#7f1d1d'};color:{'#86efac' if net_pos else '#fca5a5'}">
+                                            {'▲' if net_pos else '▼'} {net_pct:.1f}%
+                                        </span>
+                                    </div>
                                 </div>
+                                <span style="color:#94A3B8;font-size:0.75rem">por período</span>
                             </div>
-                            <span style="color:#94A3B8;font-size:0.75rem">por período</span>
                         </div>
                         """, unsafe_allow_html=True)
-
                         fig_net = px.bar(net_df, x='Período', y='Lucro',
                                          color_discrete_sequence=['#818CF8'], height=180)
                         fig_net.update_layout(
@@ -222,32 +191,24 @@ def render(user, agents):
                                              title_text='')
                         fig_net.update_yaxes(gridcolor='#334155', showticklabels=True, title_text='')
                         st.plotly_chart(fig_net, use_container_width=True)
-
-                    # ── Card B: Despesas por Categoria ──
-                    card_b = st.columns(1)[0]
-                    with card_b:
-                        st.markdown(
-                            '<div class="card-marker-side" style="display:none"></div>',
-                            unsafe_allow_html=True,
-                        )
-
+                        # ── Despesas por Categoria ──
                         expense_df = df_tmp[df_tmp['Tipo'] == 'EXPENSE']
                         if not expense_df.empty:
                             cat_expense = expense_df.groupby('Categoria')['Valor'].sum().reset_index().sort_values('Valor', ascending=False)
                             total_exp = cat_expense['Valor'].sum()
-
                             st.markdown(f"""
-                            <div class="chart-card-header" style="margin-bottom:0.5rem">
-                                <div class="chart-card-header-left">
-                                    <span class="chart-card-title">💸 Despesas por Categoria</span>
-                                    <div class="chart-card-value-row">
-                                        <span class="chart-card-value" style="font-size:1.25rem">R$ {total_exp:,.2f}</span>
+                            <div style="margin-bottom:0.5rem">
+                                <div style="display:flex;justify-content:space-between;align-items:flex-start">
+                                    <div>
+                                        <div class="chart-card-title">💸 Despesas por Categoria</div>
+                                        <div class="chart-card-value-row">
+                                            <span class="chart-card-value" style="font-size:1.25rem">R$ {total_exp:,.2f}</span>
+                                        </div>
                                     </div>
+                                    <span style="color:#94A3B8;font-size:0.75rem">{len(cat_expense)} categorias</span>
                                 </div>
-                                <span style="color:#94A3B8;font-size:0.75rem">{len(cat_expense)} categorias</span>
                             </div>
                             """, unsafe_allow_html=True)
-
                             fig_cat = px.pie(
                                 cat_expense, names='Categoria', values='Valor',
                                 color_discrete_sequence=px.colors.qualitative.Set3,
@@ -262,24 +223,32 @@ def render(user, agents):
                             )
                             st.plotly_chart(fig_cat, use_container_width=True)
                         else:
-                            st.markdown('<p style="color:#94A3B8;text-align:center;padding:2rem 0">Nenhuma despesa registrada</p>', unsafe_allow_html=True)
-
-                # ================================================================
-                # DETAIL ON CLICK (outside the columns, below the card row)
-                # ================================================================
-                if sel_points:
-                    periodo_clicado = sel_points[0].get("x") if isinstance(sel_points[0], dict) else getattr(sel_points[0], "x", None)
-                    detail = df_tmp[df_tmp['Período'] == periodo_clicado]
-
-                    if not detail.empty:
-                        col_det, _ = st.columns([2, 1], gap="medium")
-                        with col_det:
+                            st.markdown('<p style="color:#94A3B8;text-align:center;padding:1.5rem 0">Nenhuma despesa registrada</p>', unsafe_allow_html=True)
+                    # ── Period Selector (dentro do card) ──
+                    period_type = st.radio(
+                        "Agrupar por:",
+                        options=["Anual", "Mensal", "Semanal", "Diário", "Período personalizado"],
+                        horizontal=True, index=0, key="finance_period_type"
+                    )
+                    if period_type == "Período personalizado":
+                        col_d1, col_d2 = st.columns(2)
+                        with col_d1:
+                            p_start = st.date_input("Data Início", key="fin_start")
+                        with col_d2:
+                            p_end = st.date_input("Data Fim", key="fin_end")
+                    # ── Detail on click ──
+                    sel_points = None
+                    if event is not None:
+                        raw_sel = event.get("selection", {}) if isinstance(event, dict) else getattr(event, "selection", None) or {}
+                        sel_points = raw_sel.get("points", []) if isinstance(raw_sel, dict) else getattr(raw_sel, "points", [])
+                    if sel_points:
+                        periodo_clicado = sel_points[0].get("x") if isinstance(sel_points[0], dict) else getattr(sel_points[0], "x", None)
+                        detail = df_tmp[df_tmp['Período'] == periodo_clicado]
+                        if not detail.empty:
                             st.markdown("---")
                             st.markdown(f'<span class="chart-card-title">📋 Detalhamento: {periodo_clicado}</span>', unsafe_allow_html=True)
-
                             det_fat = detail[detail['Tipo'] == 'INCOME']['Valor'].sum()
                             det_sai = detail[detail['Tipo'] == 'EXPENSE']['Valor'].sum()
-
                             det_income_ids = set(detail[detail['Tipo'] == 'INCOME']['ID'].tolist())
                             det_cogs = 0.0
                             for txn in income_txns:
@@ -293,23 +262,19 @@ def render(user, agents):
                                                     det_cogs += txn.quantity * (comp.quantity or 1) * (inv_item.supplier_price or 0.0)
                                         else:
                                             det_cogs += txn.quantity * (product.supplier_price or 0.0)
-
                             det_lucro = det_fat - det_sai - det_cogs
                             det_margem = (det_lucro / det_fat * 100) if det_fat > 0 else 0
-
                             kd1, kd2, kd3, kd4 = st.columns(4)
                             with kd1: metric_card("Fat. Bruto", f"R$ {det_fat:,.2f}")
                             with kd2: metric_card("Saídas", f"R$ {det_sai:,.2f}")
                             with kd3: metric_card("COGS", f"R$ {det_cogs:,.2f}")
                             with kd4: metric_card("Lucro Real", f"R$ {det_lucro:,.2f}",
                                                   delta=f"{det_margem:.1f}%")
-
                             income_detail = detail[detail['Tipo'] == 'INCOME']
                             if not income_detail.empty:
                                 with st.expander("📦 Produtos Vendidos", expanded=True):
                                     period_start = income_detail['Date'].min().to_pydatetime()
                                     period_end = income_detail['Date'].max().to_pydatetime()
-
                                     col_tv, col_tp = st.columns(2)
                                     with col_tv:
                                         st.markdown("**🏆 Top Vendas**")
@@ -335,20 +300,16 @@ def render(user, agents):
                                                 st.markdown(f"**{i}.** {title} — **:green[Vendidos: {p['total_potes']} un.]**")
                                         else:
                                             st.info("Nenhum produto no período.")
-
                             with st.expander("📄 Todas as Transações", expanded=False):
                                 st.dataframe(
                                     detail[['Data', 'Desc', 'Valor', 'Tipo', 'Categoria']].sort_values('Data'),
                                     hide_index=True, use_container_width=True
                                 )
-
         else:
             st.info("Nenhuma transação financeira encontrada.")
-
         with st.expander("📝 Gerenciar Histórico de Transações"):
             all_transactions_with_id = [{"ID": t.id, "Data": t.date, "Desc": t.description, "Valor": t.amount, "Tipo": t.type, "Categoria": t.category} for t in stats["raw_data"]]
             df_edit = pd.DataFrame(all_transactions_with_id).sort_values(by="Data", ascending=False)
-
             edited_df = st.data_editor(
                 df_edit,
                 column_config={
@@ -360,7 +321,6 @@ def render(user, agents):
                 },
                 hide_index=True, num_rows="dynamic", key="transaction_editor", use_container_width=True
             )
-
             if st.button("Salvar Alterações", type="primary"):
                 original_ids = set(df_edit["ID"])
                 edited_ids = set(edited_df["ID"].dropna())
@@ -377,7 +337,6 @@ def render(user, agents):
                         if pd.to_datetime(row["Data"]) != pd.to_datetime(original_row["Data"]): updates["date"] = pd.to_datetime(row["Data"])
                         if updates: finance_agent.update_transaction(int(txn_id), updates)
                 st.success("Financeiro atualizado com sucesso!"); st.rerun()
-
         st.divider()
         if st.button("🪄 Gerar Insights de Negócio (IA)", use_container_width=True):
             context_insights = {
@@ -390,7 +349,6 @@ def render(user, agents):
             with st.spinner("Analisando padrões financeiros..."):
                 report = finance_agent.generate_deep_analysis(user.id, context_insights)
                 st.markdown(report)
-
             with st.expander("⛔ Zona de Perigo"):
                 st.warning("Estas ações NÃO podem ser desfeitas.")
                 col_z1, col_z2 = st.columns(2)
@@ -406,22 +364,17 @@ def render(user, agents):
                         if st.button("Sim, resetar", type="primary", key="confirm_reset_stock"):
                             res = finance_agent.reset_inventory(user.id)
                             if res["success"]: st.toast(res["message"]); st.rerun()
-
     with sub_tab_venda:
         st.subheader("💰 Registrar Venda Manual")
         st.info("Utilize este formulário para registrar vendas que não foram importadas automaticamente. O estoque será abatido proporcionalmente.")
-
         # Produtos disponíveis
         if products_list:
             product_names = [p.title for p in products_list]
             product_map = {p.title: p for p in products_list}
-
             with st.form("income_form_new"):
                 v_p_choice = st.selectbox("Selecione o Anúncio", product_names)
                 v_p_obj = product_map[v_p_choice]
-
                 st.caption(f"Valor de Tabela: R$ {v_p_obj.price:.2f}")
-
                 vc1, vc2 = st.columns(2)
                 v_val = vc1.number_input(
                     "Valor Total Recebido (R$)",
@@ -433,7 +386,6 @@ def render(user, agents):
                 )
                 v_qty = vc2.number_input("Quantidade Vendida", min_value=1, step=1, value=1)
                 v_date = st.date_input("Data da Venda")
-
                 if st.form_submit_button("Confirmar Venda e Abater Estoque", type="primary"):
                     res = finance_agent.add_transaction(
                         date=v_date, description=v_p_choice, amount=v_val,
@@ -446,7 +398,6 @@ def render(user, agents):
                     else: st.error(res["message"])
         else:
             st.warning("Nenhum anúncio encontrado. Cadastre seus anúncios na aba 'Gestão de Anúncios'.")
-
     with sub_tab_gasto:
         st.subheader("💸 Registro de Despesas")
         with st.form("expense_form_new"):
@@ -455,7 +406,6 @@ def render(user, agents):
             dc1, dc2 = st.columns(2)
             d_val = dc1.number_input("Valor (R$)", min_value=0.01, step=10.0)
             d_cat = dc2.selectbox("Categoria", ["Ads", "Custo Produto", "Assinatura", "Outros"])
-
             if st.form_submit_button("Salvar Despesa", type="primary"):
                 res = finance_agent.add_transaction(
                     date=d_date, description=d_desc, amount=d_val,
@@ -464,13 +414,10 @@ def render(user, agents):
                 if res["success"]:
                     st.success("Gasto registrado com sucesso!"); st.rerun()
                 else: st.error(res["message"])
-
     with sub_tab_upload:
         st.subheader("📂 Importar Planilha de Vendas")
         st.markdown("Suba o arquivo XML/XLSX da Shopee ou um CSV próprio. Nossa IA irá processar os dados e vincular aos anúncios.")
-
         uploaded_file = st.file_uploader("Arraste o arquivo aqui", type=["csv", "xlsx"], key="income_upload_new")
-
         if uploaded_file and "upload_preview" not in st.session_state:
             if st.button("Processar com IA", type="primary"):
                 with st.spinner("Interpretando dados da planilha..."):
@@ -479,12 +426,10 @@ def render(user, agents):
                         st.session_state["upload_preview"] = result["data"]
                         st.rerun()
                     else: st.error(result["message"])
-
         if "upload_preview" in st.session_state:
             st.info("Revise as transações identificadas pela IA antes de salvar.")
             df_preview = pd.DataFrame(st.session_state["upload_preview"])
             edited_preview = st.data_editor(df_preview, use_container_width=True, hide_index=True)
-
             cp1, cp2 = st.columns(2)
             if cp1.button("Confirmar Tudo e Abater Estoques", type="primary", use_container_width=True):
                 confirmed_data = edited_preview.to_dict(orient="records")
@@ -495,13 +440,11 @@ def render(user, agents):
                     st.rerun()
             if cp2.button("Descartar", use_container_width=True):
                 del st.session_state["upload_preview"]; st.rerun()
-
     # Resolução de Itens não Encontrados (Persistent ao final da aba Financeiro)
     if "unmatched_products" in st.session_state and st.session_state["unmatched_products"]:
         st.divider()
         st.subheader("⚠️ Vendas não Vinculadas")
         st.caption("Os itens abaixo foram registrados no financeiro, mas não encontramos anúncios correspondentes para abater o estoque.")
-
         unmatched = st.session_state["unmatched_products"]
         for idx, item in enumerate(unmatched):
             with st.container(border=True):
@@ -512,4 +455,3 @@ def render(user, agents):
         if not st.session_state["unmatched_products"]:
             del st.session_state["unmatched_products"]
             st.rerun()
-
