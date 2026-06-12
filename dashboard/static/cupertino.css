@@ -368,6 +368,14 @@ section[data-testid="stSidebar"] label[data-baseweb="toggle"] span {
   overflow-x: auto !important;
   overflow-y: hidden !important;
 }
+.stVerticalBlock:has(div.scrollable-chart-marker) .stElementContainer {
+  padding: 0 !important;
+  margin: 0 !important;
+}
+.stVerticalBlock:has(div.scrollable-chart-marker) .stPlotlyChart {
+  padding: 0 !important;
+  margin: 0 !important;
+}
 .scrollable-chart-marker {
   display: none;
 }
