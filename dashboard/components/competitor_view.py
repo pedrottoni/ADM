@@ -5,7 +5,6 @@ from agents.product_agent import ProductAgent
 
 
 def render_competitor_page(user_id: int):
-    st.header("🔍 Concorrência — Monitoramento de Preços")
 
     product_agent = ProductAgent()
     products = product_agent.get_all_products(user_id)

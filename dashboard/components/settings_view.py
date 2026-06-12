@@ -3,7 +3,6 @@ from core.llm_client import llm_client
 from core.config import Config
 
 def render_settings_page():
-    st.header("⚙️ Configurações de IA")
 
     if not llm_client.enabled:
         st.warning("🤖 A conexão com IA está **desativada**. Ative-a no botão 🤖 IA no topo da página para usar os recursos de IA.")
