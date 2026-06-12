@@ -72,7 +72,7 @@ def render(user, agents):
         with k2: metric_card("Saídas (Custos/Ads)", f"R$ {saidas:,.2f}")
         with k3: metric_card("COGS", f"R$ {total_cogs:,.2f}")
         with k4: metric_card("Lucro Real", f"R$ {lucro_real:,.2f}",
-                            delta=f"{margem_real:.1f}% Margem")
+                            delta=f"{margem_real:.1f}%")
 
         if not df_all.empty:
             st.subheader("Evolução Financeira")
@@ -154,7 +154,7 @@ def render(user, agents):
                         with kd2: metric_card("Saídas", f"R$ {det_sai:,.2f}")
                         with kd3: metric_card("COGS", f"R$ {det_cogs:,.2f}")
                         with kd4: metric_card("Lucro Real", f"R$ {det_lucro:,.2f}",
-                                            delta=f"{det_margem:.1f}% Margem")
+                                            delta=f"{det_margem:.1f}%")
 
                         income_detail = detail[detail['Tipo'] == 'INCOME']
                         if not income_detail.empty:

@@ -136,7 +136,7 @@ def render(user, agents):
             with c2: metric_card("Custo (COGS)", f"R$ {total_cogs_vendas:,.2f}")
             with c3: metric_card("Ticket Médio", f"R$ {ticket_medio:,.2f}")
             with c4: metric_card("Margem %", f"{total_margem:.1f}%",
-                     delta="Saudável" if total_margem >= 20 else ("Atenção" if total_margem >= 10 else "Crítico"))
+                     delta="🟢" if total_margem >= 20 else ("🟡" if total_margem >= 10 else "🔴"))
             with c5: metric_card("ROI", f"{roi:.0f}%")
 
             # Métricas secundárias
@@ -408,9 +408,9 @@ def render(user, agents):
             roi = (net_profit / custo_fornecedor_total * 100.0) if custo_fornecedor_total > 0 else 0.0
             repasse_shopee = net_revenue_base - comissao_shopee - taxa_fixa_shopee - custo_ads
 
-            margin_color = "🟢 Excelente" if profit_margin >= 20 else ("🟡 Atenção" if profit_margin >= 10 else "🔴 Crítico/Prejuízo")
+            margin_color = "🟢" if profit_margin >= 20 else ("🟡" if profit_margin >= 10 else "🔴")
 
-            metric_card("Lucro Líquido Real", f"R$ {net_profit:,.2f}", delta=f"{profit_margin:.1f}% Margem ({margin_color})")
+            metric_card("Lucro Líquido Real", f"R$ {net_profit:,.2f}", delta=f"{margin_color} {profit_margin:.1f}%")
 
             m1, m2 = st.columns(2)
             with m1: metric_card("ROI", f"{roi:.0f}%")

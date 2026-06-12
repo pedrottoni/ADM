@@ -9,6 +9,7 @@ Uso:
     from dashboard.components.metric_card import metric_card
     metric_card("💰 Receita", "R$ 10.502,63")
     metric_card("📈 Lucro", "R$ 8.124,52", delta="77.4%")
+    metric_card("📉 Margem", "R$ 5,00", delta="🔴 5.0%")
 """
 
 import streamlit as st
@@ -20,14 +21,24 @@ def metric_card(label: str, value: str, delta: str | None = None) -> None:
     Args:
         label: Rótulo do card (ex: "💰 Receita Total")
         value: Valor principal (ex: "R$ 10.502,63")
-        delta: Percentual opcional (ex: "77.4%", "-5.2%")
-               Se passado sem sinal, assume positivo.
+        delta: Percentual opcional (ex: "77.4%", "-5.2%").
+               Se iniciar com 🟢🟡🔴 o emoji define arrow/cor.
     """
     delta_html = ""
     if delta is not None:
-        stripped = delta.strip().lstrip("↑").lstrip("↓").strip()
-        # Detecta positivo/negativo pelo símbolo ou se começa com "-"
-        is_positive = "↑" in delta or (stripped and not stripped.startswith("-"))
+        stripped = delta.strip()
+
+        # Detecta indicador por emoji 🟢🟡🔴 (3 estados)
+        if "🔴" in stripped:
+            is_positive = False
+        elif "🟢" in stripped or "🟡" in stripped:
+            is_positive = True
+        else:
+            # Fallback: limpa arrow symbol e verifica sinal
+            for sym in ("↑", "↓", "▲", "▼"):
+                stripped = stripped.replace(sym, "").strip()
+            is_positive = not stripped.startswith("-")
+
         bg = "#166534" if is_positive else "#7f1d1d"
         color = "#86efac" if is_positive else "#fca5a5"
         arrow = "▲" if is_positive else "▼"
@@ -63,8 +74,8 @@ def metric_card(label: str, value: str, delta: str | None = None) -> None:
             gap:8px;
         ">
             <span class="mc-value" style="
-                font-size:1.75rem;
-                font-weight:700;
+                font-size:1.5rem;
+                font-weight:600;
                 color:#F8FAFC;
                 letter-spacing:-0.02em;
                 line-height:1.3;
