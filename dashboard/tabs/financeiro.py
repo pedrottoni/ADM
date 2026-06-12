@@ -147,7 +147,7 @@ def render(user, agents):
                                      color_discrete_map={"Despesas": "#F87171", "Receitas": "#818CF8"},
                                      barmode='relative', height=500)
                         fig.update_layout(
-                            margin=dict(l=10, r=10, t=10, b=10),
+                            margin=dict(l=2, r=2, t=2, b=2),
                             showlegend=False,
                             width=chart_w,
                             paper_bgcolor='rgba(0,0,0,0)',
