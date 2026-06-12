@@ -363,6 +363,15 @@ section[data-testid="stSidebar"] label[data-baseweb="toggle"] span {
   margin-bottom: 0.5rem !important;
 }
 
+/* Make chart column scrollable when content overflows */
+.stVerticalBlock:has(div.scrollable-chart-marker) {
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+}
+.scrollable-chart-marker {
+  display: none;
+}
+
 /* ── Buttons ─────────────────────────────────────────────── */
 .stButton > button {
   border-radius: var(--dx-radius-s) !important;

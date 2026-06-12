@@ -133,23 +133,33 @@ def render(user, agents):
                     col_bar, col_side = st.columns([2, 1], gap="medium")
                     # ── Left: Stacked Bar Chart ──
                     with col_bar:
+                        st.markdown(
+                            '<div class="scrollable-chart-marker" style="display:none"></div>',
+                            unsafe_allow_html=True,
+                        )
                         chart_display = chart_data.copy()
                         chart_display['Tipo'] = chart_display['Tipo'].replace({'EXPENSE': 'Despesas', 'INCOME': 'Receitas'})
+
+                        n_periods = len(chart_display['Período'].unique())
+                        chart_w = max(700, n_periods * 90)
+
                         fig = px.bar(chart_display, x='Período', y='Valor', color='Tipo',
                                      color_discrete_map={"Despesas": "#F87171", "Receitas": "#818CF8"},
-                                     barmode='relative', height=400)
+                                     barmode='relative', height=500)
                         fig.update_layout(
                             margin=dict(l=10, r=10, t=10, b=10),
                             showlegend=False,
+                            width=chart_w,
                             paper_bgcolor='rgba(0,0,0,0)',
                             plot_bgcolor='rgba(0,0,0,0)',
                             font=dict(color='#94A3B8', size=11),
                             hovermode='x unified',
                         )
                         fig.update_xaxes(type='category', tickangle=0, gridcolor='#334155',
-                                         title_text='', showticklabels=True)
+                                         title_text='', showticklabels=True,
+                                         rangeslider=dict(visible=True, thickness=0.06))
                         fig.update_yaxes(gridcolor='#334155', title_text='', showticklabels=True)
-                        event = st.plotly_chart(fig, on_select="rerun", use_container_width=True)
+                        event = st.plotly_chart(fig, on_select="rerun", use_container_width=False)
                     # ── Right: Side Cards ──
                     with col_side:
                         # ── Lucro Líquido ──
