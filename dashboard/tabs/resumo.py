@@ -15,13 +15,19 @@ def render(user, agents):
     customer_agent = agents["customer_agent"]
 
     # ── KPI Cards ──
+    from dashboard.components.metric_card import metric_card
+
     stats = finance_agent.get_financial_stats(user.id)
     kpi_row1 = st.columns(4)
-    kpi_row1[0].metric("💰 Receita Total", f"R$ {stats['total_revenue']:,.2f}")
-    kpi_row1[1].metric("📉 Despesas", f"R$ {stats['total_expenses']:,.2f}")
-    kpi_row1[2].metric("📈 Lucro Líquido", f"R$ {stats['net_profit']:,.2f}",
-                       delta=f"{stats['margin']:.1f}%" if stats['total_revenue'] > 0 else None)
-    kpi_row1[3].metric("📊 Transações", str(stats['transaction_count']))
+    with kpi_row1[0]:
+        metric_card("💰 Receita Total", f"R$ {stats['total_revenue']:,.2f}")
+    with kpi_row1[1]:
+        metric_card("📉 Despesas", f"R$ {stats['total_expenses']:,.2f}")
+    with kpi_row1[2]:
+        delta_val = f"{stats['margin']:.1f}%" if stats['total_revenue'] > 0 else None
+        metric_card("📈 Lucro Líquido", f"R$ {stats['net_profit']:,.2f}", delta=delta_val)
+    with kpi_row1[3]:
+        metric_card("📊 Transações", str(stats['transaction_count']))
 
     st.divider()
 
