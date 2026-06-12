@@ -349,19 +349,23 @@ section[data-testid="stSidebar"] label[data-baseweb="toggle"] span {
   display: inline-block;
 }
 
-/* ── Chart Card Markers (target only inner container, not the outer column) ── */
-.chart-card-marker-evolution,
-.chart-card-marker-side {
+/* ── Card Markers ───────────────────────────────────────── ── */
+.evolution-card-marker,
+.card-marker-side {
   display: none;
 }
-.stVerticalBlock > .stElementContainer > .stVerticalBlock:has(.chart-card-marker-evolution) {
+
+/* Main evolution card — col_main's .stVerticalBlock */
+.stVerticalBlock:has(div.evolution-card-marker) {
   background: #1E293B !important;
   border: 1px solid #334155 !important;
   border-radius: 12px !important;
   padding: 1.5rem !important;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  margin-bottom: 0.5rem !important;
 }
-.stVerticalBlock > .stElementContainer > .stVerticalBlock:has(.chart-card-marker-side) {
+
+/* Side cards — inside st.columns(1) child columns */
+.stHorizontalBlock > * > .stVerticalBlock:has(div.card-marker-side) {
   background: #1E293B !important;
   border: 1px solid #334155 !important;
   border-radius: 12px !important;
