@@ -269,13 +269,15 @@ div[data-testid="metric-container"] {
   border-radius: var(--dx-radius-m);
   padding: 1.25rem 1.5rem;
   transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
 div[data-testid="metric-container"]:hover {
   border-color: var(--dx-indigo);
-  box-shadow: 0 0 0 1px var(--dx-indigo-glow);
+  box-shadow: 0 0 0 1px var(--dx-indigo-glow), 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
+/* Label row */
 div[data-testid="metric-container"] label {
   color: var(--dx-text-tertiary) !important;
   font-size: 0.8rem !important;
@@ -283,11 +285,28 @@ div[data-testid="metric-container"] label {
   text-transform: none !important;
 }
 
+/* Inline row: value + delta side by side */
+div[data-testid="stMetric"] {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: wrap !important;
+  align-items: baseline !important;
+  column-gap: 10px !important;
+}
+
+div[data-testid="stMetric"] label {
+  width: 100% !important;
+  flex-shrink: 0 !important;
+  margin-bottom: 4px !important;
+}
+
 div[data-testid="metric-container"] div[data-testid="stMetricValue"] {
+  display: inline !important;
   font-size: 1.75rem !important;
   font-weight: 700 !important;
   color: var(--dx-text-primary) !important;
   letter-spacing: -0.02em;
+  line-height: 1.3;
 }
 
 div[data-testid="metric-container"] div[data-testid="stMetricDelta"] {
@@ -299,6 +318,7 @@ div[data-testid="metric-container"] div[data-testid="stMetricDelta"] {
   font-size: 0.75rem !important;
   font-weight: 600 !important;
   width: auto !important;
+  line-height: 1.4;
   /* Tinted bg matching the delta color (green/red) */
   background: color-mix(in srgb, currentColor 12%, transparent) !important;
 }
