@@ -11,5 +11,5 @@ echo Iniciando o Dashboard...
 echo O navegador deve abrir automaticamente.
 echo Pressione Ctrl+C nesta janela para parar o servidor.
 echo.
-python -m streamlit run dashboard/main.py --server.headless true
+python -m streamlit run dashboard/app.py --server.headless true
 pause

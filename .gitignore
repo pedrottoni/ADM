@@ -53,6 +53,5 @@ database.db
 
 # Scratch / Temp files
 scratch/
-scripts/
 .DS_Store
 Thumbs.db
