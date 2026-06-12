@@ -9,6 +9,7 @@ from core.database.engine import get_session
 
 def render(user, agents):
     """Render the tab content."""
+    from dashboard.components.metric_card import metric_card
     finance_agent = agents["finance_agent"]
     product_agent = agents["product_agent"]
     ads_agent = agents["ads_agent"]
@@ -48,8 +49,8 @@ def render(user, agents):
                 # Display Results
                 st.divider()
                 kpi1, kpi2 = st.columns(2)
-                kpi1.metric("ROAS", f"{roas:.2f}x", delta=f"{roas-2:.2f}x (Meta 2x)")
-                kpi2.metric("CTR", f"{ctr:.2f}%", delta=f"{ctr-1.5:.2f}% (Meta 1.5%)")
+                with kpi1: metric_card("ROAS", f"{roas:.2f}x", delta=f"+{roas-2:.2f}x" if roas >= 2 else f"{roas-2:.2f}x")
+                with kpi2: metric_card("CTR", f"{ctr:.2f}%", delta=f"+{ctr-1.5:.2f}%" if ctr >= 1.5 else f"{ctr-1.5:.2f}%")
 
                 st.info(f"💡 **Estratégia**: {advice}")
             else:

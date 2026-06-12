@@ -58,7 +58,7 @@ def metric_card(label: str, value: str, delta: str | None = None) -> None:
         <div class="mc-row" style="
             display:flex;
             flex-direction:row;
-            flex-wrap:wrap;
+            flex-wrap:nowrap;
             align-items:baseline;
             gap:8px;
         ">
@@ -68,6 +68,9 @@ def metric_card(label: str, value: str, delta: str | None = None) -> None:
                 color:#F8FAFC;
                 letter-spacing:-0.02em;
                 line-height:1.3;
+                white-space:nowrap;
+                overflow:hidden;
+                text-overflow:ellipsis;
             ">{value}</span>
             {delta_html}
         </div>

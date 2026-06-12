@@ -7,6 +7,7 @@ import pandas as pd
 import re
 from core.config import Config
 from core.database.engine import get_session
+from dashboard.components.metric_card import metric_card
 
 
 def render(user, agents):
@@ -131,16 +132,16 @@ def render(user, agents):
             valor_por_kit = (total_receita_real / total_variantes_vendidas) if total_variantes_vendidas > 0 else 0.0
 
             c1, c2, c3, c4, c5 = st.columns(5)
-            c1.metric("Kits Vendidos", f"{total_variantes_vendidas}")
-            c2.metric("Custo (COGS)", f"R$ {total_cogs_vendas:,.2f}", help="Custo do fornecedor")
-            c3.metric("Ticket Médio", f"R$ {ticket_medio:,.2f}", help="Valor médio por kit vendido")
-            c4.metric("Margem %", f"{total_margem:.1f}%", 
+            with c1: metric_card("Kits Vendidos", f"{total_variantes_vendidas}")
+            with c2: metric_card("Custo (COGS)", f"R$ {total_cogs_vendas:,.2f}")
+            with c3: metric_card("Ticket Médio", f"R$ {ticket_medio:,.2f}")
+            with c4: metric_card("Margem %", f"{total_margem:.1f}%",
                      delta="Saudável" if total_margem >= 20 else ("Atenção" if total_margem >= 10 else "Crítico"))
-            c5.metric("ROI", f"{roi:.0f}%", help="Retorno sobre investimento")
+            with c5: metric_card("ROI", f"{roi:.0f}%")
 
             # Métricas secundárias
             m1, m2 = st.columns(2)
-            m1.metric("Valor por Kit", f"R$ {valor_por_kit:,.2f}", help="Receita média unitária")
+            with m1: metric_card("Valor por Kit", f"R$ {valor_por_kit:,.2f}")
 
             st.divider()
 
@@ -278,10 +279,10 @@ def render(user, agents):
             display_start = start_date.date() if isinstance(start_date, datetime) else start_date
             display_end = (end_date - timedelta(days=1)).date() if isinstance(end_date, datetime) else end_date
             c1, c2, c3, c4 = st.columns(4)
-            c1.metric("Potes Vendidos (Período)", f"{period_potes_vendidos} un.", help=f"Período: {display_start.strftime('%d/%m')} - {display_end.strftime('%d/%m')}")
-            c2.metric("COGS (Período)", f"R$ {period_cogs:,.2f}", help=f"Custo no período selecionado")
-            c3.metric("Potes Vendidos (Total)", f"{total_potes_vendidos} un.", help="Soma de todos os tempos")
-            c4.metric("COGS (Total)", f"R$ {total_cogs_vendas:,.2f}", help="Custo total de todas as vendas")
+            with c1: metric_card("Potes Vendidos (Período)", f"{period_potes_vendidos} un.")
+            with c2: metric_card("COGS (Período)", f"R$ {period_cogs:,.2f}")
+            with c3: metric_card("Potes Vendidos (Total)", f"{total_potes_vendidos} un.")
+            with c4: metric_card("COGS (Total)", f"R$ {total_cogs_vendas:,.2f}")
 
             # Calcular potes vendidos por item no período
             potes_por_item_periodo = {item.id: 0 for item in inventory_items}
@@ -409,11 +410,11 @@ def render(user, agents):
 
             margin_color = "🟢 Excelente" if profit_margin >= 20 else ("🟡 Atenção" if profit_margin >= 10 else "🔴 Crítico/Prejuízo")
 
-            st.metric("Lucro Líquido Real", f"R$ {net_profit:,.2f}", f"{profit_margin:.1f}% Margem ({margin_color})")
+            metric_card("Lucro Líquido Real", f"R$ {net_profit:,.2f}", delta=f"{profit_margin:.1f}% Margem ({margin_color})")
 
             m1, m2 = st.columns(2)
-            m1.metric("ROI", f"{roi:.0f}%", help="Retorno sobre o Custo do Produto")
-            m2.metric("Repasse da Shopee", f"R$ {repasse_shopee:,.2f}", help="Valor que efetivamente cairá na sua conta da Shopee")
+            with m1: metric_card("ROI", f"{roi:.0f}%")
+            with m2: metric_card("Repasse da Shopee", f"R$ {repasse_shopee:,.2f}")
 
             st.divider()
             st.markdown("**Detalhamento Financeiro do Pedido:**")

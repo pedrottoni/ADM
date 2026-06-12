@@ -30,6 +30,7 @@ def render(user, agents):
     # Calcular COGS (Custo dos Produtos Vendidos) a partir das transações de venda
     from core.database.models import Transaction, Product, InventoryItem, ProductComponent
     from sqlmodel import select
+    from dashboard.components.metric_card import metric_card
     session_cogs = next(get_session())
     income_txns = session_cogs.exec(
         select(Transaction).where(
@@ -67,11 +68,11 @@ def render(user, agents):
     with sub_tab_dash:
         # KPIs Principais - 4 colunas
         k1, k2, k3, k4 = st.columns(4)
-        k1.metric("Fat. Bruto", f"R$ {fat_bruto:,.2f}")
-        k2.metric("Saídas (Custos/Ads)", f"R$ {saidas:,.2f}")
-        k3.metric("COGS", f"R$ {total_cogs:,.2f}", help="Custo dos Produtos Vendidos")
-        k4.metric("Lucro Real", f"R$ {lucro_real:,.2f}", delta=f"{margem_real:.1f}% Margem",
-                 delta_color="normal" if lucro_real >= 0 else "inverse")
+        with k1: metric_card("Fat. Bruto", f"R$ {fat_bruto:,.2f}")
+        with k2: metric_card("Saídas (Custos/Ads)", f"R$ {saidas:,.2f}")
+        with k3: metric_card("COGS", f"R$ {total_cogs:,.2f}")
+        with k4: metric_card("Lucro Real", f"R$ {lucro_real:,.2f}",
+                            delta=f"{margem_real:.1f}% Margem")
 
         if not df_all.empty:
             st.subheader("Evolução Financeira")
@@ -149,11 +150,11 @@ def render(user, agents):
                         det_margem = (det_lucro / det_fat * 100) if det_fat > 0 else 0
 
                         kd1, kd2, kd3, kd4 = st.columns(4)
-                        kd1.metric("Fat. Bruto", f"R$ {det_fat:,.2f}")
-                        kd2.metric("Saídas", f"R$ {det_sai:,.2f}")
-                        kd3.metric("COGS", f"R$ {det_cogs:,.2f}")
-                        kd4.metric("Lucro Real", f"R$ {det_lucro:,.2f}", delta=f"{det_margem:.1f}% Margem",
-                                  delta_color="normal" if det_lucro >= 0 else "inverse")
+                        with kd1: metric_card("Fat. Bruto", f"R$ {det_fat:,.2f}")
+                        with kd2: metric_card("Saídas", f"R$ {det_sai:,.2f}")
+                        with kd3: metric_card("COGS", f"R$ {det_cogs:,.2f}")
+                        with kd4: metric_card("Lucro Real", f"R$ {det_lucro:,.2f}",
+                                            delta=f"{det_margem:.1f}% Margem")
 
                         income_detail = detail[detail['Tipo'] == 'INCOME']
                         if not income_detail.empty:
