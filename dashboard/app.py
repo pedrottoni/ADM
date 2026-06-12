@@ -29,23 +29,9 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# ── Custom CSS ──────────────────────────────────────────────────────
-st.markdown("""
-<style>
-div.stButton > button:first-child[kind="primary"] {
-    background-color: #4CAF50;
-    border-color: #4CAF50;
-    color: white;
-}
-div.stButton > button:first-child[kind="primary"]:hover {
-    background-color: #45a049;
-    border-color: #45a049;
-}
-.stToggle {
-    padding-top: 2.5rem;
-}
-</style>
-""", unsafe_allow_html=True)
+# ── Custom CSS (Cupertino Dark) ───────────────────────────
+with open("dashboard/static/cupertino.css") as f:
+    st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
 
 def load_user():

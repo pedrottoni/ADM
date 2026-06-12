@@ -1,0 +1,410 @@
+/* ═══════════════════════════════════════════════════════
+   Cupertino Dark — Streamlit Theme
+   Inspired by the Cupertino Obsidian theme (Alexis C / sevenaxis)
+   iOS-native look & feel with glassmorphism accents
+   ═══════════════════════════════════════════════════════ */
+
+/* ── Root Variables ─────────────────────────────────── */
+:root {
+  --cupertino-bg-primary: #1C1C1E;
+  --cupertino-bg-secondary: #2C2C2E;
+  --cupertino-bg-tertiary: #3A3A3C;
+  --cupertino-text-primary: #FFFFFF;
+  --cupertino-text-secondary: #EBEBF5;
+  --cupertino-text-tertiary: #8E8E93;
+  --cupertino-text-quaternary: #636366;
+  --cupertino-blue: #007AFF;
+  --cupertino-green: #34C759;
+  --cupertino-orange: #FF9500;
+  --cupertino-red: #FF3B30;
+  --cupertino-purple: #AF52DE;
+  --cupertino-separator: rgba(84, 84, 86, 0.65);
+  --cupertino-fill: rgba(120, 120, 128, 0.2);
+  --cupertino-glass-bg: rgba(44, 44, 46, 0.75);
+  --cupertino-glass-border: rgba(255, 255, 255, 0.08);
+  --cupertino-radius-s: 8px;
+  --cupertino-radius-m: 12px;
+  --cupertino-radius-l: 20px;
+}
+
+/* ── Base / App Container ───────────────────────────── */
+.stApp {
+  background: var(--cupertino-bg-primary);
+}
+
+.stApp > header {
+  background: var(--cupertino-bg-secondary) !important;
+  border-bottom: 0.5px solid var(--cupertino-separator);
+}
+
+/* ── Typography ─────────────────────────────────────── */
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 700 !important;
+  letter-spacing: -0.02em;
+  color: var(--cupertino-text-primary);
+}
+
+h1 {
+  font-size: 2rem !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.03em;
+}
+
+.stMarkdown p {
+  color: var(--cupertino-text-secondary);
+  line-height: 1.5;
+}
+
+/* ── Sidebar (Frosted Glass) ────────────────────────── */
+section[data-testid="stSidebar"] {
+  background: var(--cupertino-bg-secondary) !important;
+  border-right: 0.5px solid var(--cupertino-separator);
+}
+
+section[data-testid="stSidebar"] .stMarkdown h3 {
+  color: var(--cupertino-text-tertiary);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600 !important;
+}
+
+section[data-testid="stSidebar"] .stMetric {
+  background: var(--cupertino-glass-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 0.5px solid var(--cupertino-glass-border);
+  border-radius: var(--cupertino-radius-m);
+  padding: 12px 16px;
+}
+
+section[data-testid="stSidebar"] .stProgress > div > div {
+  background: var(--cupertino-blue);
+}
+
+section[data-testid="stSidebar"] .stProgress > div {
+  background: var(--cupertino-fill);
+}
+
+section[data-testid="stSidebar"] hr {
+  border-color: var(--cupertino-separator);
+  margin: 1rem 0;
+}
+
+/* ── Tabs (iOS Segmented Control Style) ─────────────── */
+div[data-testid="stHorizontalBlock"] > div[data-baseweb="tab-list"] {
+  background: var(--cupertino-bg-tertiary);
+  border-radius: var(--cupertino-radius-s);
+  padding: 3px;
+  gap: 2px;
+  border: none;
+}
+
+button[data-baseweb="tab"] {
+  border-radius: 6px !important;
+  background: transparent !important;
+  color: var(--cupertino-text-secondary) !important;
+  font-size: 0.8rem !important;
+  font-weight: 500 !important;
+  padding: 6px 14px !important;
+  border: none !important;
+  transition: all 0.2s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+button[data-baseweb="tab"][aria-selected="true"] {
+  background: var(--cupertino-blue) !important;
+  color: white !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+button[data-baseweb="tab"]:hover {
+  color: var(--cupertino-text-primary) !important;
+}
+
+/* ── Metric Cards (Glassmorphism) ───────────────────── */
+div[data-testid="metric-container"] {
+  background: var(--cupertino-glass-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 0.5px solid var(--cupertino-glass-border);
+  border-radius: var(--cupertino-radius-m);
+  padding: 16px 20px;
+  transition: all 0.2s ease;
+}
+
+div[data-testid="metric-container"]:hover {
+  background: rgba(58, 58, 60, 0.8);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+div[data-testid="metric-container"] > div {
+  gap: 4px;
+}
+
+div[data-testid="metric-container"] label {
+  color: var(--cupertino-text-tertiary) !important;
+  font-size: 0.8rem !important;
+  font-weight: 500 !important;
+  text-transform: none !important;
+}
+
+div[data-testid="metric-container"] div[data-testid="stMetricValue"] {
+  font-size: 1.75rem !important;
+  font-weight: 700 !important;
+  color: var(--cupertino-text-primary) !important;
+  letter-spacing: -0.02em;
+}
+
+div[data-testid="metric-container"] div[data-testid="stMetricDelta"] {
+  font-size: 0.8rem !important;
+  font-weight: 500 !important;
+}
+
+div[data-testid="metric-container"] div[data-testid="stMetricDelta"] svg {
+  display: none;
+}
+
+/* ── Buttons (iOS Style) ────────────────────────────── */
+.stButton > button {
+  border-radius: var(--cupertino-radius-s) !important;
+  font-weight: 600 !important;
+  padding: 8px 20px !important;
+  border: none !important;
+  transition: all 0.2s cubic-bezier(0.32, 0.72, 0, 1);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.stButton > button[kind="primary"] {
+  background: var(--cupertino-blue) !important;
+  color: white !important;
+}
+
+.stButton > button[kind="primary"]:hover {
+  background: #0056CC !important;
+  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.4);
+  transform: translateY(-1px);
+}
+
+.stButton > button[kind="primary"]:active {
+  transform: translateY(0);
+  background: #004999 !important;
+}
+
+.stButton > button[kind="secondary"] {
+  background: var(--cupertino-bg-tertiary) !important;
+  color: var(--cupertino-blue) !important;
+  border: 0.5px solid var(--cupertino-separator) !important;
+}
+
+.stButton > button[kind="secondary"]:hover {
+  background: #48484A !important;
+  border-color: var(--cupertino-blue) !important;
+}
+
+/* ── Inputs / Text Areas ────────────────────────────── */
+div[data-baseweb="input"] input,
+div[data-baseweb="textarea"] textarea {
+  background: var(--cupertino-bg-tertiary) !important;
+  border: 0.5px solid var(--cupertino-separator) !important;
+  border-radius: var(--cupertino-radius-s) !important;
+  color: var(--cupertino-text-primary) !important;
+  font-size: 0.9rem !important;
+  padding: 10px 12px !important;
+  transition: border-color 0.2s ease;
+}
+
+div[data-baseweb="input"] input:focus,
+div[data-baseweb="textarea"] textarea:focus {
+  border-color: var(--cupertino-blue) !important;
+  box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.2);
+}
+
+div[data-baseweb="input"] input::placeholder,
+div[data-baseweb="textarea"] textarea::placeholder {
+  color: var(--cupertino-text-tertiary);
+}
+
+/* Select / Dropdown */
+div[data-baseweb="select"] > div {
+  background: var(--cupertino-bg-tertiary) !important;
+  border: 0.5px solid var(--cupertino-separator) !important;
+  border-radius: var(--cupertino-radius-s) !important;
+}
+
+/* Toggle (iOS Switch) */
+div[data-baseweb="toggle"] {
+  --toggle-width: 48px !important;
+  --toggle-height: 28px !important;
+}
+
+div[data-baseweb="toggle"] > div {
+  background: var(--cupertino-fill) !important;
+  border: none !important;
+  transition: background 0.2s ease;
+}
+
+div[data-baseweb="toggle"][aria-checked="true"] > div {
+  background: var(--cupertino-green) !important;
+}
+
+div[data-baseweb="toggle"] > div > div {
+  background: white !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  transform: scale(0.9);
+}
+
+/* ── Expanders ──────────────────────────────────────── */
+div[data-testid="stExpander"] {
+  background: var(--cupertino-bg-secondary);
+  border: 0.5px solid var(--cupertino-separator);
+  border-radius: var(--cupertino-radius-m);
+  overflow: hidden;
+}
+
+div[data-testid="stExpander"] > details > summary {
+  font-weight: 600;
+  padding: 12px 16px;
+}
+
+div[data-testid="stExpander"] > details > div {
+  padding: 0 16px 16px;
+}
+
+/* ── Info / Success / Warning / Error Boxes ─────────── */
+div.stAlert {
+  border-radius: var(--cupertino-radius-s) !important;
+  border: none !important;
+  font-size: 0.9rem !important;
+  padding: 12px 16px !important;
+}
+
+div.stAlert[data-baseweb="notification"] {
+  background: var(--cupertino-fill) !important;
+}
+
+.element-container div:has(> .stInfo) > div {
+  background: rgba(0, 122, 255, 0.12) !important;
+  border-left: 3px solid var(--cupertino-blue) !important;
+}
+
+.element-container div:has(> .stSuccess) > div {
+  background: rgba(52, 199, 89, 0.12) !important;
+  border-left: 3px solid var(--cupertino-green) !important;
+}
+
+.element-container div:has(> .stWarning) > div {
+  background: rgba(255, 149, 0, 0.12) !important;
+  border-left: 3px solid var(--cupertino-orange) !important;
+}
+
+.element-container div:has(> .stError) > div {
+  background: rgba(255, 59, 48, 0.12) !important;
+  border-left: 3px solid var(--cupertino-red) !important;
+}
+
+/* ── Dividers ───────────────────────────────────────── */
+hr {
+  border: none !important;
+  height: 0.5px !important;
+  background: var(--cupertino-separator) !important;
+  margin: 1.5rem 0 !important;
+}
+
+/* ── DataFrames / Tables ────────────────────────────── */
+div[data-testid="stDataFrame"] {
+  border-radius: var(--cupertino-radius-m);
+  border: 0.5px solid var(--cupertino-separator);
+  overflow: hidden;
+}
+
+div[data-testid="stDataFrame"] table {
+  font-size: 0.85rem !important;
+}
+
+div[data-testid="stDataFrame"] thead tr th {
+  background: var(--cupertino-bg-tertiary) !important;
+  color: var(--cupertino-text-secondary) !important;
+  font-weight: 600 !important;
+  border-bottom: 0.5px solid var(--cupertino-separator) !important;
+}
+
+div[data-testid="stDataFrame"] tbody tr td {
+  background: var(--cupertino-bg-secondary) !important;
+  color: var(--cupertino-text-primary) !important;
+  border-bottom: 0.5px solid rgba(84, 84, 86, 0.3) !important;
+}
+
+div[data-testid="stDataFrame"] tbody tr:hover td {
+  background: var(--cupertino-bg-tertiary) !important;
+}
+
+/* ── Progress Bar ───────────────────────────────────── */
+.stProgress > div {
+  background: var(--cupertino-fill) !important;
+  border-radius: 100px !important;
+  height: 4px !important;
+  overflow: hidden;
+}
+
+.stProgress > div > div {
+  background: var(--cupertino-blue) !important;
+  border-radius: 100px !important;
+  transition: width 0.4s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* ── Columns / Layout ───────────────────────────────── */
+div[data-testid="column"] {
+  gap: 1rem;
+}
+
+/* ── Spinner ────────────────────────────────────────── */
+div[data-testid="stSpinner"] > div {
+  border-color: var(--cupertino-blue) !important;
+  border-bottom-color: transparent !important;
+}
+
+/* ── Tooltips ───────────────────────────────────────── */
+div[data-testid="stTooltip"] {
+  background: var(--cupertino-bg-tertiary) !important;
+  border: 0.5px solid var(--cupertino-separator);
+  border-radius: var(--cupertino-radius-s);
+  color: var(--cupertino-text-primary);
+  font-size: 0.8rem;
+}
+
+/* ── Multiselect ────────────────────────────────────── */
+div[data-baseweb="tag"] {
+  background: var(--cupertino-blue) !important;
+  color: white !important;
+  border-radius: 6px !important;
+}
+
+/* ── Sidebar Navigation Footer ──────────────────────── */
+section[data-testid="stSidebar"] .st-emotion-cache-16idsys {
+  color: var(--cupertino-text-tertiary);
+  font-size: 0.75rem;
+}
+
+/* ── Small style fixes ──────────────────────────────── */
+.st-emotion-cache-1gulkj5 {
+  display: none; /* hide extra hamburger menu decoration */
+}
+
+div[data-testid="stImage"] img {
+  border-radius: var(--cupertino-radius-s);
+}
+
+/* ── Caption ────────────────────────────────────────── */
+.stCaption {
+  color: var(--cupertino-text-tertiary) !important;
+  font-size: 0.8rem !important;
+}
+
+/* ── Code blocks ────────────────────────────────────── */
+code {
+  background: var(--cupertino-bg-tertiary) !important;
+  color: var(--cupertino-orange) !important;
+  border-radius: 4px !important;
+  padding: 2px 6px !important;
+  font-size: 0.85em !important;
+}
