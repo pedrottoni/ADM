@@ -31,6 +31,7 @@ def render(user, agents):
 
     # Calcular COGS (Custo dos Produtos Vendidos) a partir das transações de venda
     from core.database.models import Transaction, Product, InventoryItem, ProductComponent
+    from sqlmodel import select
     session_cogs = next(get_session())
     income_txns = session_cogs.exec(
         select(Transaction).where(

@@ -32,6 +32,7 @@ def render(user, agents):
 
     # Carregar receitas (INCOME) vinculadas a produtos para calcular receita real
     from core.database.models import Transaction
+    from sqlmodel import select
     session_txn = next(get_session())
     income_transactions = session_txn.exec(
         select(Transaction).where(
