@@ -114,9 +114,8 @@ def render(user, agents):
                 # LEFT COLUMN — Evolução Financeira (Bar Chart)
                 # ================================================================
                 with col_main:
-                    st.markdown('<div class="chart-card">', unsafe_allow_html=True)
+                    st.markdown('<div class="chart-card-marker-evolution" style="display:none"></div>', unsafe_allow_html=True)
 
-                    # Header: Title + total value + delta + legend
                     income_total = chart_data[chart_data['Tipo'] == 'INCOME']['Valor'].sum()
                     expense_total = chart_data[chart_data['Tipo'] == 'EXPENSE']['Valor'].sum()
                     net_total = income_total - expense_total
@@ -142,19 +141,24 @@ def render(user, agents):
                     </div>
                     """, unsafe_allow_html=True)
 
-                    fig = px.bar(chart_data, x='Período', y='Valor', color='Tipo',
-                                 color_discrete_map={"EXPENSE": "#F87171", "INCOME": "#818CF8"},
+                    # Renomear tipos para PT antes do gráfico
+                    chart_display = chart_data.copy()
+                    chart_display['Tipo'] = chart_display['Tipo'].replace({'EXPENSE': 'Despesas', 'INCOME': 'Receitas'})
+
+                    fig = px.bar(chart_display, x='Período', y='Valor', color='Tipo',
+                                 color_discrete_map={"Despesas": "#F87171", "Receitas": "#818CF8"},
                                  barmode='relative', height=400)
                     fig.update_layout(
                         margin=dict(l=10, r=10, t=10, b=10),
-                        legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='right', x=1),
+                        showlegend=False,
                         paper_bgcolor='rgba(0,0,0,0)',
                         plot_bgcolor='rgba(0,0,0,0)',
                         font=dict(color='#94A3B8', size=11),
                         hovermode='x unified',
                     )
-                    fig.update_xaxes(type='category', tickangle=-45, gridcolor='#334155')
-                    fig.update_yaxes(gridcolor='#334155')
+                    fig.update_xaxes(type='category', tickangle=0, gridcolor='#334155',
+                                     title_text='', showticklabels=True)
+                    fig.update_yaxes(gridcolor='#334155', title_text='', showticklabels=True)
 
                     event = st.plotly_chart(fig, on_select="rerun", use_container_width=True)
 
@@ -237,16 +241,11 @@ def render(user, agents):
                                     hide_index=True, use_container_width=True
                                 )
 
-                    st.markdown('</div>', unsafe_allow_html=True)
-
                 # ================================================================
-                # RIGHT COLUMN — Two Small Charts
+                # RIGHT COLUMN — Two Small Charts (embedded via st.html+fig.to_html)
                 # ================================================================
                 with col_side:
                     # ── Card A: Lucro Líquido por Período ──
-                    st.markdown('<div class="chart-card">', unsafe_allow_html=True)
-
-                    # Net profit per period
                     income_by_period = chart_data[chart_data['Tipo'] == 'INCOME'][['Período', 'Valor']].rename(columns={'Valor': 'Income'})
                     expense_by_period = chart_data[chart_data['Tipo'] == 'EXPENSE'][['Período', 'Valor']].rename(columns={'Valor': 'Expense'})
                     net_df = income_by_period.merge(expense_by_period, on='Período', how='outer').fillna(0)
@@ -256,65 +255,50 @@ def render(user, agents):
 
                     total_net = net_df['Lucro'].sum()
                     net_pos = total_net >= 0
+                    net_pct = abs(total_net / income_total * 100) if income_total > 0 else 0
 
-                    st.markdown(f"""
-                    <div class="chart-card-header" style="margin-bottom:0.5rem">
-                        <div class="chart-card-header-left">
-                            <span class="chart-card-title">📊 Lucro Líquido</span>
-                            <div class="chart-card-value-row">
-                                <span class="chart-card-value" style="font-size:1.25rem">R$ {total_net:,.2f}</span>
-                                <span class="chart-card-delta" style="background:{'#166534' if net_pos else '#7f1d1d'};color:{'#86efac' if net_pos else '#fca5a5'}">
-                                    {'▲' if net_pos else '▼'} {abs(total_net / income_total * 100) if income_total > 0 else 0:.1f}%
-                                </span>
-                            </div>
-                        </div>
-                        <span style="color:#94A3B8;font-size:0.75rem">por período</span>
-                    </div>
-                    """, unsafe_allow_html=True)
-
-                    fig_net = px.bar(
-                        net_df, x='Período', y='Lucro',
-                        color_discrete_sequence=['#818CF8'],
-                        height=180
-                    )
+                    fig_net = px.bar(net_df, x='Período', y='Lucro',
+                                     color_discrete_sequence=['#818CF8'], height=180)
                     fig_net.update_layout(
                         margin=dict(l=5, r=5, t=5, b=5),
+                        showlegend=False,
                         paper_bgcolor='rgba(0,0,0,0)',
                         plot_bgcolor='rgba(0,0,0,0)',
                         font=dict(color='#94A3B8', size=9),
-                        showlegend=False,
                     )
-                    fig_net.update_xaxes(tickangle=-45, gridcolor='#334155', showticklabels=False)
-                    fig_net.update_yaxes(gridcolor='#334155', showticklabels=True)
-                    st.plotly_chart(fig_net, use_container_width=True)
+                    fig_net.update_xaxes(tickangle=0, gridcolor='#334155', showticklabels=False,
+                                         title_text='')
+                    fig_net.update_yaxes(gridcolor='#334155', showticklabels=True, title_text='')
 
-                    st.markdown('</div>', unsafe_allow_html=True)
+                    card1_html = f"""
+                    <div class="chart-card" style="margin-bottom:1rem">
+                        <div class="chart-card-header" style="margin-bottom:0.5rem">
+                            <div class="chart-card-header-left">
+                                <span class="chart-card-title">📊 Lucro Líquido</span>
+                                <div class="chart-card-value-row">
+                                    <span class="chart-card-value" style="font-size:1.25rem">R$ {total_net:,.2f}</span>
+                                    <span class="chart-card-delta" style="background:{'#166534' if net_pos else '#7f1d1d'};color:{'#86efac' if net_pos else '#fca5a5'}">
+                                        {'▲' if net_pos else '▼'} {net_pct:.1f}%
+                                    </span>
+                                </div>
+                            </div>
+                            <span style="color:#94A3B8;font-size:0.75rem">por período</span>
+                        </div>
+                        {fig_net.to_html(include_plotlyjs=False, full_html=False)}
+                    </div>
+                    """
+                    st.html(card1_html)
 
                     # ── Card B: Despesas por Categoria ──
-                    st.markdown('<div class="chart-card">', unsafe_allow_html=True)
-
                     expense_df = df_tmp[df_tmp['Tipo'] == 'EXPENSE']
                     if not expense_df.empty:
                         cat_expense = expense_df.groupby('Categoria')['Valor'].sum().reset_index().sort_values('Valor', ascending=False)
                         total_exp = cat_expense['Valor'].sum()
 
-                        st.markdown(f"""
-                        <div class="chart-card-header" style="margin-bottom:0.5rem">
-                            <div class="chart-card-header-left">
-                                <span class="chart-card-title">💸 Despesas por Categoria</span>
-                                <div class="chart-card-value-row">
-                                    <span class="chart-card-value" style="font-size:1.25rem">R$ {total_exp:,.2f}</span>
-                                </div>
-                            </div>
-                            <span style="color:#94A3B8;font-size:0.75rem">{len(cat_expense)} categorias</span>
-                        </div>
-                        """, unsafe_allow_html=True)
-
                         fig_cat = px.pie(
                             cat_expense, names='Categoria', values='Valor',
                             color_discrete_sequence=px.colors.qualitative.Set3,
-                            hole=0.55,
-                            height=220,
+                            hole=0.55, height=220,
                         )
                         fig_cat.update_layout(
                             margin=dict(l=10, r=10, t=10, b=10),
@@ -323,11 +307,25 @@ def render(user, agents):
                             showlegend=True,
                             legend=dict(orientation='h', yanchor='bottom', y=-0.2, xanchor='center', x=0.5, font=dict(size=9)),
                         )
-                        st.plotly_chart(fig_cat, use_container_width=True)
+                        fig_cat.update_annotations(font=dict(color='#F8FAFC', size=11))
+
+                        card2_html = f"""
+                        <div class="chart-card">
+                            <div class="chart-card-header" style="margin-bottom:0.5rem">
+                                <div class="chart-card-header-left">
+                                    <span class="chart-card-title">💸 Despesas por Categoria</span>
+                                    <div class="chart-card-value-row">
+                                        <span class="chart-card-value" style="font-size:1.25rem">R$ {total_exp:,.2f}</span>
+                                    </div>
+                                </div>
+                                <span style="color:#94A3B8;font-size:0.75rem">{len(cat_expense)} categorias</span>
+                            </div>
+                            {fig_cat.to_html(include_plotlyjs=False, full_html=False)}
+                        </div>
+                        """
+                        st.html(card2_html)
                     else:
                         st.markdown('<p style="color:#94A3B8;text-align:center;padding:2rem 0">Nenhuma despesa registrada</p>', unsafe_allow_html=True)
-
-                    st.markdown('</div>', unsafe_allow_html=True)
 
         else:
             st.info("Nenhuma transação financeira encontrada.")
