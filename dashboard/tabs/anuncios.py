@@ -16,8 +16,6 @@ def render(user, agents):
     ads_agent = agents["ads_agent"]
     customer_agent = agents["customer_agent"]
 
-    st.header("📦 Gestão de Anúncios")
-
     # Carregar dados (Anúncios Shopee e Itens de Inventário Físico)
     products = product_agent.get_all_products(user.id)
     inventory_items = product_agent.get_all_inventory_items(user.id)

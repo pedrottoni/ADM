@@ -14,8 +14,6 @@ def render(user, agents):
     ads_agent = agents["ads_agent"]
     customer_agent = agents["customer_agent"]
 
-    st.header("🤝 Customer Hero (Atendimento)")
-
     col_c1, col_c2 = st.tabs(["💬 Gerador de Respostas", "⭐ Análise de Reviews"])
 
     with col_c1:

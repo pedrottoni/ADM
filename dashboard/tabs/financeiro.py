@@ -16,8 +16,6 @@ def render(user, agents):
     ads_agent = agents["ads_agent"]
     customer_agent = agents["customer_agent"]
 
-    st.header("Tesouraria Real 🛡️")
-
     # Carregar Estatísticas e Produtos
     analysis = finance_agent.analyze_health(user.id)
     stats = analysis["stats"]

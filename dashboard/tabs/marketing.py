@@ -14,8 +14,6 @@ def render(user, agents):
     ads_agent = agents["ads_agent"]
     customer_agent = agents["customer_agent"]
 
-    st.header("📢 Central de Marketing")
-
     st.info("💡 **Dica**: Use a 'Fábrica de Produtos' para gerar palavras-chave de cauda longa para seus anúncios durante a criação do produto!")
 
     col_tool2, col_tool3 = st.columns([1, 1])
