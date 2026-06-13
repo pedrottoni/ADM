@@ -65,11 +65,13 @@ pip install -r requirements.txt
 # 2. Configurar .env (copie .env.example ou edite diretamente)
 #    Precisa de: TAVILY_API_KEY, FIRECRAWL_API_KEY, GEMINI_API_KEY (ou OPENROUTER_API_KEY)
 
-# 3. Rodar
+# 3. Rodar (sempre da raiz do projeto — engine.py cria DB com path relativo ao CWD)
 streamlit run dashboard/app.py
 ```
 
 Ou clique duas vezes em `run_app.bat`.
+
+> ⚠️ **DB location:** `database.db` mora na **raiz** do projeto (`C:\Proiectum\Loja\ADM\database.db`), NÃO em `data/`. A `data/` listada abaixo é só pra CSVs e `AGENTS.md`.
 
 ---
 
@@ -82,6 +84,7 @@ Ou clique duas vezes em `run_app.bat`.
 | Transações registradas | **281** |
 | Receita total | **R$ 10.440,00** |
 | Lucro estimado | **~R$ 8.000** (76% margem) |
+| Tabelas no DB | **8** (User, Mission, Transaction, Product, ProductVariation, ProductComponent, InventoryItem, CompetitorListing) |
 
 ---
 

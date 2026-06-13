@@ -13,14 +13,14 @@ Dashboard Streamlit para gestão de loja Shopee (niche saúde/bem-estar/suplemen
 |-------|-----------|-------------|
 | **[`agents/`](./agents/AGENTS.md)** | ✅ | 5 agentes IA: Product, Finance, Ads, Customer + Base |
 | **[`core/`](./core/AGENTS.md)** | ✅ | Config, LLMClient, CompetitorService, SalesService |
-| ↳ `core/database/` | ✅ | Models (9 tabelas), Engine, Migrations |
+| `core/database/` | ✅ | 8 tabelas (User, Mission, Transaction, Product, ProductVariation, ProductComponent, InventoryItem, CompetitorListing), Engine, Migrations |
 | ↳ `core/gamification/` | ✅ | Engine de XP, níveis, missões |
 | **[`dashboard/`](./dashboard/AGENTS.md)** | ✅ | App Streamlit (entry point) |
 | ↳ `dashboard/tabs/` | ✅ | 7 tabs (Resumo, Financeiro, Marketing, Atendimento, Anúncios, Concorrência, Config) |
 | ↳ `dashboard/components/` | ✅ | Componentes reutilizáveis |
 | **[`scrapers/`](./scrapers/AGENTS.md)** | ✅ | Shopee, Amazon, Enjoei scrapers (Tavily+Firecrawl) |
 | **[`docs/`](./docs/AGENTS.md)** | ✅ | Plano mestre, status do projeto, design system |
-| **[`DESIGN.md`](./DESIGN.md)** | ✅ | Design system Dashdark — paleta indigo/navy, componentes, navegação lateral |
+- **[`DESIGN.md`](./DESIGN.md)** | ✅ | Design system Dashdark X (paleta `--dx-*`, sidebar hub, indigo/navy) — em sincronia com `dashboard/static/cupertino.css` |
 | **[`scripts/`](./scripts/AGENTS.md)** | ✅ | Utilitários |
 | **[`data/`](./data/AGENTS.md)** | ✅ | Banco SQLite + dados |
 | **[`tests/`](./tests/AGENTS.md)** | ✅ | (vazio — preparado para testes) |

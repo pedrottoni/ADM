@@ -15,8 +15,11 @@ Frontend Streamlit do ADM. Entry point em `app.py`, cada tab é um módulo separ
 ### `tabs/` → [AGENTS.md](./tabs/AGENTS.md)
 Uma função `render(user, agents)` por tab.
 
+### `static/` (não tem AGENTS.md próprio)
+- `static/cupertino.css` — **~720 linhas CSS**, source of truth do design system Dashdark X (paleta `--dx-*`, todas as variantes de componentes). Carregado por `dashboard/app.py` no boot. **Ver [DESIGN.md](../../DESIGN.md) antes de mexer.**
+
 ### `components/` → [AGENTS.md](./components/AGENTS.md)
-Componentes UI reutilizáveis (concorrência, configurações).
+Componentes UI reutilizáveis (concorrência, configurações, metric_card).
 
 ## Como Usar
 

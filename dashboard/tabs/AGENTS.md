@@ -9,11 +9,13 @@ Cada arquivo exporta uma função `render(user, agents)` que desenha uma tab do 
 |---------------|-------|-----------|
 | `resumo.py` | 🏠 Resumo | KPIs, top vendas, progresso XP, missões ativas, alertas estoque |
 | `financeiro.py` | 💰 Financeiro | Tesouraria: resumo financeiro, registrar venda, despesas, upload dados |
-| `marketing.py` | 📢 Marketing | Análise de campanhas, gerador de prompts Midjourney |
+| `marketing.py` | 📢 Central de Marketing | Análise de campanhas, gerador de prompts Midjourney |
 | `atendimento.py` | 🤝 Atendimento | Gerador de respostas (formal/casual/empático), análise sentimento |
 | `anuncios.py` | 📦 Meus Anúncios | **A maior tab**. CRUD produtos, upload massa, kits, estoque, importar CSV |
 | `concorrencia.py` | 🔍 Concorrência | Monitor de preços (delega para `competitor_view.py`) |
 | `configuracoes.py` | ⚙️ Configurações | Provider LLM, API keys (delega para `settings_view.py`) |
+
+> ⚠️ Label real: `📢  Central de Marketing` (não "Marketing"), conforme `app.py` TAB_LABELS.
 
 ## Como Usar
 

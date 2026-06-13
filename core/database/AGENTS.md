@@ -7,7 +7,7 @@ Camada de dados usando SQLModel + SQLAlchemy + SQLite.
 
 | Arquivo | Propósito |
 |---------|-----------|
-| `models.py` | **9 tabelas**: User, Product, ProductVariation, ProductComponent, InventoryItem, Transaction, Mission, CompetitorListing, Category |
+| `models.py` | **8 tabelas**: User, Mission, Transaction, Product, ProductVariation, ProductComponent, InventoryItem, CompetitorListing |
 | `engine.py` | `create_db_and_tables()`, `get_session()`, `initialize_default_user()`, engine singleton |
 | `migrations/` | Scripts de migração incremental (v0 → v1 → v2...) |
 
@@ -16,13 +16,13 @@ Camada de dados usando SQLModel + SQLAlchemy + SQLite.
 | Modelo | Tabela | Uso |
 |--------|--------|-----|
 | `User` | Admin dono da loja. Tem XP, level, missions |
-| `Product` | Anúncios Shopee. title, price, supplier_price, category_id |
-| `ProductVariation` | Variações de produto (ex: 30d, 60d) |
-| `ProductComponent` | Bridge Product → InventoryItem (kits) |
-| `InventoryItem` | Estoque físico (potes/cápsulas), com min_stock |
-| `Transaction` | Vendas (INCOME) e despesas (EXPENSE) |
-| `CompetitorListing` | Preços coletados por scrapers |
-| `Mission` | Missões de gamificação ligadas ao User |
+| `Product` | Anúncios Shopee. title, price, supplier_price, sku, shopee_id, category (str livre) |
+| `ProductVariation` | Variações de produto (ex: 30d, 60d) — name, price, supplier_price, stock, sku, shopee_id |
+| `ProductComponent` | Bridge Product → InventoryItem (kits) — quantity (multiplicador) |
+| `InventoryItem` | Estoque físico (potes/cápsulas), com min_stock, initial_stock |
+| `Transaction` | Vendas (INCOME) e despesas (EXPENSE). Tem `product_id` (FK opcional, populado por `SalesService.process_income_batch`) e `quantity` |
+| `Mission` | Missões de gamificação — title, description, xp_reward, is_completed, user_id |
+| `CompetitorListing` | Preços coletados por scrapers. Campos: marketplace, competitor_title/price/seller, our_price_at_time, price_before_discount, shipping_cost, product_url, marketplace_id, rating, sold_count, seller_location, **is_confirmed_match** (bool), **confidence_score** ("alto"/"médio"/"baixo"/"nao_match"), last_checked_at |
 
 ## Como Usar
 
