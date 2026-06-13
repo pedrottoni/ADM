@@ -380,6 +380,133 @@ section[data-testid="stSidebar"] label[data-baseweb="toggle"] span {
   display: none;
 }
 
+/* ── Plotly Charts — zero padding/margin ──────────────────── */
+div[data-testid="stPlotlyChart"] {
+  padding: 0 !important;
+  margin: 0 !important;
+}
+div[data-testid="stPlotlyChart"] > div {
+  padding: 0 !important;
+  margin: 0 !important;
+}
+div[data-testid="stPlotlyChart"] .plot-container {
+  padding: 0 !important;
+}
+.stVerticalBlock:has(div.scrollable-chart-marker) div[data-testid="stPlotlyChart"] {
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* ── Evolution chart — full-bleed fix (escoped) ───────────── */
+/* Estica o SVG do Plotly pra preencher o container inteiro,
+   removendo o offset interno que deixa aquela "margem verde".
+   Aplicado SÓ dentro do contexto scrollable-chart-marker (evolution chart). */
+.stVerticalBlock:has(div.scrollable-chart-marker) .js-plotly-plot,
+.stVerticalBlock:has(div.scrollable-chart-marker) .plot-container,
+.stVerticalBlock:has(div.scrollable-chart-marker) .main-svg {
+  width: 100% !important;
+  left: 0 !important;
+  right: 0 !important;
+}
+.stVerticalBlock:has(div.scrollable-chart-marker) .plotly-graph-div {
+  width: 100% !important;
+  overflow: visible !important;
+  position: relative !important;
+}
+/* Nota: NÃO zeramos .cartesianlayer/.plot transform — ele posiciona os eixos dentro do SVG
+   e zerá-lo desalinhararia os labels (0, 2k...). O Plotly já aceita margin.l=0 absoluto. */
+
+/* ── Sub-blocks (Evolução | Lucro | Categorias) ───────────── */
+/* Bordas + altura uniforme entre os sub-blocos irmãos.
+   Evolução é mais alta (cobre Lucro+Cat somados). */
+.sub-block {
+  border: 1px solid var(--dx-card-border);
+  border-radius: var(--dx-radius-m);
+  padding: 1.25rem;
+  background: var(--dx-card-bg);
+}
+/* Os sub-blocos são st.container() que contém o scrollable-chart-marker (Evolução).
+   Escopamos via :has() o container certo. */
+:where([data-testid="stContainer"]):has(.scrollable-chart-marker) {
+  border: 1px solid var(--dx-card-border);
+  border-radius: var(--dx-radius-m);
+  padding: 1.25rem;
+  background: var(--dx-card-bg);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+:where([data-testid="stContainer"]):has(.scrollable-chart-marker) .chart-card-header {
+  flex-shrink: 0;
+  margin-bottom: 0.25rem;
+}
+:where([data-testid="stContainer"]):has(.scrollable-chart-marker) div[data-testid="stPlotlyChart"] {
+  flex-grow: 1 !important;
+  min-height: 480px;
+}
+
+/* Sub-bloco Lucro: 1º stContainer dentro do 2º data-testid=column
+   (1ª coluna = Evolução, 2ª coluna = Lucro+Cat empilhados) */
+div[data-testid="column"]:nth-of-type(2) [data-testid="stContainer"]:nth-of-type(1) {
+  border: 1px solid var(--dx-card-border);
+  border-radius: var(--dx-radius-m);
+  padding: 1.25rem;
+  background: var(--dx-card-bg);
+  margin-bottom: 1rem;
+}
+
+/* Sub-bloco Categorias: 2º stContainer dentro do 2º data-testid=column */
+div[data-testid="column"]:nth-of-type(2) [data-testid="stContainer"]:nth-of-type(2) {
+  border: 1px solid var(--dx-card-border);
+  border-radius: var(--dx-radius-m);
+  padding: 1.25rem;
+  background: var(--dx-card-bg);
+}
+
+/* Distribui Lucro e Categorias dentro da coluna direita
+   para que o espaço entre eles (e das bordas ao sub-bloco abaixo)
+   fique uniforme via justify-content: space-between.
+   !important necessário para vencer o CSS-in-JS inline do Emotion cache. */
+.st-emotion-cache-wfksaw {
+  justify-content: space-between !important;
+}
+
+/* ── Separadores entre sub-blocos ─────────────────────────── */
+/* Linha VERTICAL (1px) entre Evolução (esq) e Lucro+Cat (dir).
+   Renderizada no centro do gap de 1rem entre as colunas,
+   usando ::before posicionado absolutamente à esquerda da coluna. */
+div[data-testid="column"]:nth-of-type(2) {
+  position: relative !important;
+}
+div[data-testid="column"]:nth-of-type(2)::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -0.5rem; /* centro do gap (gap=1rem → centro=0.5rem) */
+  width: 1px;
+  background: var(--dx-separator);
+  pointer-events: none;
+}
+
+/* Linha HORIZONTAL (1px) entre Lucro e Despesas.
+   Renderizada no centro do gap vertical entre os 2 sub-blocos,
+   via ::after no sub-bloco Lucro. */
+div[data-testid="column"]:nth-of-type(2) [data-testid="stContainer"]:nth-of-type(1) {
+  position: relative !important;
+}
+div[data-testid="column"]:nth-of-type(2) [data-testid="stContainer"]:nth-of-type(1)::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -0.5rem; /* centro do gap (gap=1rem → centro=0.5rem) */
+  height: 1px;
+  background: var(--dx-separator);
+  pointer-events: none;
+}
+
 /* ── Buttons ─────────────────────────────────────────────── */
 .stButton > button {
   border-radius: var(--dx-radius-s) !important;

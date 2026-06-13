@@ -79,7 +79,8 @@ def render(user, agents):
             # ── Period type (lido do session_state, definido pelo radio dentro do card) ──
             period_type = st.session_state.get('finance_period_type', 'Anual')
             # ── Period grouping ──
-            if period_type == "Período personalizado":
+            if period_type == "Personalizado":
+                # (legacy branch — kept for safety, but option no longer in radio)
                 p_start = st.session_state.get('fin_start', pd.Timestamp.now().date())
                 p_end = st.session_state.get('fin_end', pd.Timestamp.now().date())
                 mask = (df_tmp['Date'] >= pd.Timestamp(p_start)) & (df_tmp['Date'] <= pd.Timestamp(p_end))
@@ -109,143 +110,165 @@ def render(user, agents):
                         '<div class="evolution-card-marker" style="display:none"></div>',
                         unsafe_allow_html=True,
                     )
-                    # ── Header ──
-                    st.markdown(f"""
-                    <div class="chart-card-header">
-                        <div class="chart-card-header-left">
-                            <span class="chart-card-title">📈 Evolução Financeira</span>
-                            <div class="chart-card-value-row">
-                                <span class="chart-card-value">R$ {income_total:,.2f}</span>
-                                <span class="chart-card-delta">▲ {net_margem:.1f}%</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="chart-card-legend">
-                        <span class="chart-card-legend-item">
-                            <span class="chart-card-legend-dot" style="background:#818CF8"></span> Receitas
-                        </span>
-                        <span class="chart-card-legend-item">
-                            <span class="chart-card-legend-dot" style="background:#F87171"></span> Despesas
-                        </span>
-                    </div>
-                    """, unsafe_allow_html=True)
-                    # ── Main content: [2,1] columns ──
-                    col_bar, col_side = st.columns([2, 1], gap="medium")
-                    # ── Left: Stacked Bar Chart ──
-                    with col_bar:
-                        st.markdown(
-                            '<div class="scrollable-chart-marker" style="display:none"></div>',
-                            unsafe_allow_html=True,
-                        )
-                        chart_display = chart_data.copy()
-                        chart_display['Tipo'] = chart_display['Tipo'].replace({'EXPENSE': 'Despesas', 'INCOME': 'Receitas'})
-
-                        n_periods = len(chart_display['Período'].unique())
-                        chart_w = max(700, n_periods * 90)
-
-                        fig = px.bar(chart_display, x='Período', y='Valor', color='Tipo',
-                                     color_discrete_map={"Despesas": "#F87171", "Receitas": "#818CF8"},
-                                     barmode='relative', height=500)
-                        fig.update_layout(
-                            margin=dict(l=0, r=0, t=0, b=0),
-                            showlegend=False,
-                            width=chart_w,
-                            paper_bgcolor='rgba(0,0,0,0)',
-                            plot_bgcolor='rgba(0,0,0,0)',
-                            font=dict(color='#94A3B8', size=11),
-                            hovermode='x unified',
-                        )
-                        fig.update_xaxes(type='category', tickangle=0, gridcolor='#334155',
-                                         title_text='', showticklabels=True,
-                                         rangeslider=dict(visible=True, thickness=0.06))
-                        fig.update_yaxes(gridcolor='#334155', title_text='', showticklabels=True)
-                        event = st.plotly_chart(fig, on_select="rerun", use_container_width=False)
-                    # ── Right: Side Cards ──
-                    with col_side:
-                        # ── Lucro Líquido ──
-                        income_by_period = chart_data[chart_data['Tipo'] == 'INCOME'][['Período', 'Valor']].rename(columns={'Valor': 'Income'})
-                        expense_by_period = chart_data[chart_data['Tipo'] == 'EXPENSE'][['Período', 'Valor']].rename(columns={'Valor': 'Expense'})
-                        net_df = income_by_period.merge(expense_by_period, on='Período', how='outer').fillna(0)
-                        net_df['Lucro'] = net_df['Income'] - net_df['Expense']
-                        net_df['Período'] = pd.Categorical(net_df['Período'], categories=net_df['Período'].unique(), ordered=True)
-                        net_df = net_df.sort_values('Período').reset_index(drop=True)
-                        total_net = net_df['Lucro'].sum()
-                        net_pos = total_net >= 0
-                        net_pct = abs(total_net / income_total * 100) if income_total > 0 else 0
-                        st.markdown(f"""
-                        <div style="margin-bottom:0.5rem">
-                            <div style="display:flex;justify-content:space-between;align-items:flex-start">
-                                <div>
-                                    <div class="chart-card-title">📊 Lucro Líquido</div>
-                                    <div class="chart-card-value-row">
-                                        <span class="chart-card-value" style="font-size:1.25rem">R$ {total_net:,.2f}</span>
-                                        <span class="chart-card-delta" style="background:{'#166534' if net_pos else '#7f1d1d'};color:{'#86efac' if net_pos else '#fca5a5'}">
-                                            {'▲' if net_pos else '▼'} {net_pct:.1f}%
-                                        </span>
-                                    </div>
-                                </div>
-                                <span style="color:#94A3B8;font-size:0.75rem">por período</span>
-                            </div>
-                        </div>
-                        """, unsafe_allow_html=True)
-                        fig_net = px.bar(net_df, x='Período', y='Lucro',
-                                         color_discrete_sequence=['#818CF8'], height=180)
-                        fig_net.update_layout(
-                            margin=dict(l=5, r=5, t=5, b=5),
-                            showlegend=False,
-                            paper_bgcolor='rgba(0,0,0,0)',
-                            plot_bgcolor='rgba(0,0,0,0)',
-                            font=dict(color='#94A3B8', size=9),
-                        )
-                        fig_net.update_xaxes(tickangle=0, gridcolor='#334155', showticklabels=False,
-                                             title_text='')
-                        fig_net.update_yaxes(gridcolor='#334155', showticklabels=True, title_text='')
-                        st.plotly_chart(fig_net, use_container_width=True)
-                        # ── Despesas por Categoria ──
-                        expense_df = df_tmp[df_tmp['Tipo'] == 'EXPENSE']
-                        if not expense_df.empty:
-                            cat_expense = expense_df.groupby('Categoria')['Valor'].sum().reset_index().sort_values('Valor', ascending=False)
-                            total_exp = cat_expense['Valor'].sum()
+                    # ── Main content: Evolução (growing vertically = Lucro + Cat somados) | Direita empilhada ──
+                    col_evol, col_side = st.columns([2, 1], gap="medium")
+                    # ── Sub-bloco 1: Evolução Financeira (header + legenda + radio + gráfico) ──
+                    with col_evol:
+                        # O sub_evol é um st.container() que cria um wrapper DOM persistente.
+                        # Tudo que vier dentro do `with sub_evol:` vira filho real desse container.
+                        # O CSS .sub-block-evolution estiliza esse .stContainer via :has() / .st-emotion-cache
+                        sub_evol = st.container()
+                        with sub_evol:
                             st.markdown(f"""
-                            <div style="margin-bottom:0.5rem">
-                                <div style="display:flex;justify-content:space-between;align-items:flex-start">
-                                    <div>
-                                        <div class="chart-card-title">💸 Despesas por Categoria</div>
-                                        <div class="chart-card-value-row">
-                                            <span class="chart-card-value" style="font-size:1.25rem">R$ {total_exp:,.2f}</span>
-                                        </div>
+                            <div class="chart-card-header">
+                                <div class="chart-card-header-left">
+                                    <span class="chart-card-title">📈 Evolução Financeira</span>
+                                    <div class="chart-card-value-row">
+                                        <span class="chart-card-value" style="font-size:1.5rem">R$ {income_total:,.2f}</span>
+                                        <span class="chart-card-delta">▲ {net_margem:.1f}%</span>
                                     </div>
-                                    <span style="color:#94A3B8;font-size:0.75rem">{len(cat_expense)} categorias</span>
                                 </div>
                             </div>
                             """, unsafe_allow_html=True)
-                            fig_cat = px.pie(
-                                cat_expense, names='Categoria', values='Valor',
-                                color_discrete_sequence=px.colors.qualitative.Set3,
-                                hole=0.55, height=220,
+                            st.markdown(
+                                '<div class="scrollable-chart-marker" style="display:none"></div>',
+                                unsafe_allow_html=True,
                             )
-                            fig_cat.update_layout(
-                                margin=dict(l=10, r=10, t=10, b=10),
+                            # ── Sub-header: Legend + Period filter (dentro do sub-bloco) ──
+                            leg_col, per_col = st.columns([1.2, 1], gap="small", vertical_alignment="center")
+                            with leg_col:
+                                st.markdown(f"""
+                                <div class="chart-card-legend" style="margin:0">
+                                    <span class="chart-card-legend-item">
+                                        <span class="chart-card-legend-dot" style="background:#818CF8"></span> Receitas
+                                    </span>
+                                    <span class="chart-card-legend-item">
+                                        <span class="chart-card-legend-dot" style="background:#F87171"></span> Despesas
+                                    </span>
+                                </div>
+                                """, unsafe_allow_html=True)
+                            with per_col:
+                                period_type = st.radio(
+                                    "Agrupar por",
+                                    options=["Anual", "Mensal", "Semanal", "Diário"],
+                                    horizontal=True,
+                                    index=0,
+                                    key="finance_period_type",
+                                    label_visibility="collapsed",
+                                )
+                            # ── Gráfico de barras ──
+                            chart_display = chart_data.copy()
+                            chart_display['Tipo'] = chart_display['Tipo'].replace({'EXPENSE': 'Despesas', 'INCOME': 'Receitas'})
+
+                            n_periods = len(chart_display['Período'].unique())
+
+                            fig = px.bar(chart_display, x='Período', y='Valor', color='Tipo',
+                                         color_discrete_map={"Despesas": "#F87171", "Receitas": "#818CF8"},
+                                         barmode='relative', height=480)
+                            fig.update_layout(
+                                margin=dict(l=0, r=0, t=0, b=0),
+                                showlegend=False,
                                 paper_bgcolor='rgba(0,0,0,0)',
-                                font=dict(color='#94A3B8', size=9),
-                                showlegend=True,
-                                legend=dict(orientation='h', yanchor='bottom', y=-0.2, xanchor='center', x=0.5, font=dict(size=9)),
+                                plot_bgcolor='rgba(0,0,0,0)',
+                                font=dict(color='#94A3B8', size=11),
+                                hovermode='x unified',
+                                autosize=True,
                             )
-                            st.plotly_chart(fig_cat, use_container_width=True)
-                        else:
-                            st.markdown('<p style="color:#94A3B8;text-align:center;padding:1.5rem 0">Nenhuma despesa registrada</p>', unsafe_allow_html=True)
-                    # ── Period Selector (dentro do card) ──
-                    period_type = st.radio(
-                        "Agrupar por:",
-                        options=["Anual", "Mensal", "Semanal", "Diário", "Período personalizado"],
-                        horizontal=True, index=0, key="finance_period_type"
-                    )
-                    if period_type == "Período personalizado":
-                        col_d1, col_d2 = st.columns(2)
-                        with col_d1:
-                            p_start = st.date_input("Data Início", key="fin_start")
-                        with col_d2:
-                            p_end = st.date_input("Data Fim", key="fin_end")
+                            fig.update_xaxes(type='category', tickangle=0, gridcolor='#334155',
+                                             title_text='', showticklabels=True,
+                                             rangeslider=dict(visible=True, thickness=0.035))
+                            fig.update_yaxes(gridcolor='#334155', title_text='', showticklabels=True)
+                            event = st.plotly_chart(fig, on_select="rerun", use_container_width=True)
+                    # ── Right: Side Cards ──
+                    with col_side:
+                        # ── Sub-bloco 2: Lucro Líquido ──
+                        # st.container() cria um wrapper DOM persistente que engloba
+                        # todos os elementos dentro do `with`. SEM key para evitar
+                        # bug do Streamlit onde plotly_chart "escapa" do container com key.
+                        sub_lucro = st.container()
+                        with sub_lucro:
+                            income_by_period = chart_data[chart_data['Tipo'] == 'INCOME'][['Período', 'Valor']].rename(columns={'Valor': 'Income'})
+                            expense_by_period = chart_data[chart_data['Tipo'] == 'EXPENSE'][['Período', 'Valor']].rename(columns={'Valor': 'Expense'})
+                            net_df = income_by_period.merge(expense_by_period, on='Período', how='outer').fillna(0)
+                            net_df['Lucro'] = net_df['Income'] - net_df['Expense']
+                            net_df['Período'] = pd.Categorical(net_df['Período'], categories=net_df['Período'].unique(), ordered=True)
+                            net_df = net_df.sort_values('Período').reset_index(drop=True)
+                            total_net = net_df['Lucro'].sum()
+                            net_pos = total_net >= 0
+                            net_pct = abs(total_net / income_total * 100) if income_total > 0 else 0
+                            st.markdown(f"""
+                            <div class="chart-card-header">
+                                <div class="chart-card-header-left">
+                                    <div style="display:flex;justify-content:space-between;align-items:flex-start;width:100%">
+                                        <div>
+                                            <div class="chart-card-title">📊 Lucro Líquido</div>
+                                            <div class="chart-card-value-row">
+                                                <span class="chart-card-value" style="font-size:1.25rem">R$ {total_net:,.2f}</span>
+                                                <span class="chart-card-delta" style="background:{'#166534' if net_pos else '#7f1d1d'};color:{'#86efac' if net_pos else '#fca5a5'}">
+                                                    {'▲' if net_pos else '▼'} {net_pct:.1f}%
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <span style="color:#94A3B8;font-size:0.75rem">por período</span>
+                                    </div>
+                                </div>
+                            </div>
+                            """, unsafe_allow_html=True)
+                            fig_net = px.bar(net_df, x='Período', y='Lucro',
+                                             color_discrete_sequence=['#818CF8'], height=180)
+                            fig_net.update_layout(
+                                margin=dict(l=0, r=0, t=0, b=0),
+                                showlegend=False,
+                                paper_bgcolor='rgba(0,0,0,0)',
+                                plot_bgcolor='rgba(0,0,0,0)',
+                                font=dict(color='#94A3B8', size=9),
+                                autosize=True,
+                            )
+                            fig_net.update_xaxes(tickangle=0, gridcolor='#334155', showticklabels=False,
+                                                 title_text='')
+                            fig_net.update_yaxes(gridcolor='#334155', showticklabels=True, title_text='')
+                            st.plotly_chart(fig_net, use_container_width=True)
+                        # ── Sub-bloco 3: Despesas por Categoria ──
+                        sub_cat = st.container()
+                        with sub_cat:
+                            expense_df = df_tmp[df_tmp['Tipo'] == 'EXPENSE']
+                            if not expense_df.empty:
+                                cat_expense = expense_df.groupby('Categoria')['Valor'].sum().reset_index().sort_values('Valor', ascending=False)
+                                total_exp = cat_expense['Valor'].sum()
+                                st.markdown(f"""
+                                <div class="chart-card-header">
+                                    <div class="chart-card-header-left">
+                                        <div style="display:flex;justify-content:space-between;align-items:flex-start;width:100%">
+                                            <div>
+                                                <div class="chart-card-title">💸 Despesas por Categoria</div>
+                                                <div class="chart-card-value-row">
+                                                    <span class="chart-card-value" style="font-size:1.25rem">R$ {total_exp:,.2f}</span>
+                                                </div>
+                                            </div>
+                                            <span style="color:#94A3B8;font-size:0.75rem">{len(cat_expense)} categorias</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                """, unsafe_allow_html=True)
+                                fig_cat = px.pie(
+                                    cat_expense, names='Categoria', values='Valor',
+                                    color_discrete_sequence=px.colors.qualitative.Set3,
+                                    hole=0.55, height=200,
+                                )
+                                fig_cat.update_layout(
+                                    margin=dict(l=0, r=0, t=0, b=0),
+                                    paper_bgcolor='rgba(0,0,0,0)',
+                                    font=dict(color='#94A3B8', size=9),
+                                    showlegend=True,
+                                    legend=dict(orientation='v', yanchor='middle', y=0.5,
+                                                xanchor='left', x=1.02,
+                                                font=dict(size=10), bgcolor='rgba(0,0,0,0)'),
+                                    autosize=True,
+                                )
+                                st.plotly_chart(fig_cat, use_container_width=True)
+                            else:
+                                st.markdown('<p style="color:#94A3B8;text-align:center;padding:1.5rem 0">Nenhuma despesa registrada</p>', unsafe_allow_html=True)
+                    # ── Period Selector was moved into the header (head_per column above) ──
                     # ── Detail on click ──
                     sel_points = None
                     if event is not None:

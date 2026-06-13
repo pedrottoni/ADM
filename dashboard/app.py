@@ -31,8 +31,21 @@ st.set_page_config(
 )
 
 # ── Custom CSS (Dashdark Theme) ─────────────────────────────────────
-with open("dashboard/static/cupertino.css", encoding="utf-8") as f:
-    st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+# Usa path absoluto baseado no __file__ em vez de path relativo ao CWD.
+# Isso evita que o CSS não seja encontrado se o Streamlit for iniciado de
+# outro diretório.
+from pathlib import Path as _Path
+_CSS_PATH = _Path(__file__).resolve().parent / "static" / "cupertino.css"
+_CSS_CONTENT = _CSS_PATH.read_text(encoding="utf-8")
+st.markdown(f"<style>{_CSS_CONTENT}</style>", unsafe_allow_html=True)
+# Marker invisível que prova que o CSS foi injetado nesta sessão.
+# No DevTools, F12 → Elements → procure por <meta name="css-loaded">.
+# Se você ver o conteúdo, o CSS injetou de fato.
+_meta_lines = _CSS_CONTENT.count(chr(10)) + 1
+_meta_has_sep = "Separadores" in _CSS_CONTENT
+_meta_has_before = "background: var(--dx-separator)" in _CSS_CONTENT
+_meta_content = f"lines={_meta_lines},has-separadores={_meta_has_sep},has-before={_meta_has_before}"
+st.markdown(f'<meta name="css-loaded" content="{_meta_content}">', unsafe_allow_html=True)
 
 
 def load_user():
