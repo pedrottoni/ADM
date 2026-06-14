@@ -64,7 +64,7 @@ class LLMClient:
     def generate_content(self, prompt: str, use_search: bool = False) -> str:
         """Generate text from the selected LLM."""
         if not self.enabled:
-            return "🤖 IA desativada. Ative a conexão no botão no topo da página."
+            return ":material/smart_toy: IA desativada. Ative a conexão no botão no topo da página."
 
         try:
             if self.provider == "gemini":
@@ -91,9 +91,9 @@ class LLMClient:
                         f"Resposta gerada via Backup (Gemini).]"
                     )
                 except Exception as fb_err:
-                    return f"❌ Error (Primary & Backup): {error_msg} | Fallback: {str(fb_err)}"
+                    return f":material/error: Error (Primary & Backup): {error_msg} | Fallback: {str(fb_err)}"
 
-            return f"❌ Error: {error_msg}"
+            return f":material/error: Error: {error_msg}"
 
     def _generate_gemini(self, prompt: str, use_search: bool) -> str:
         """Call Gemini via google.genai SDK."""
@@ -131,7 +131,7 @@ class LLMClient:
     ) -> str:
         """Generate content based on text prompt and image."""
         if not self.enabled:
-            return "🤖 IA desativada. Ative a conexão no botão no topo da página."
+            return ":material/smart_toy: IA desativada. Ative a conexão no botão no topo da página."
 
         try:
             if self.provider == "gemini":
@@ -182,7 +182,7 @@ class LLMClient:
             return f"Vision support not implemented for {self.provider}."
 
         except Exception as e:
-            return f"❌ Vision Error: {str(e)}"
+            return f":material/error: Vision Error: {str(e)}"
 
     # ------------------------------------------------------------------
     # Connection check

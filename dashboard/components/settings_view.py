@@ -5,7 +5,7 @@ from core.config import Config
 def render_settings_page():
 
     if not llm_client.enabled:
-        st.warning("🤖 A conexão com IA está **desativada**. Ative-a no botão 🤖 IA no topo da página para usar os recursos de IA.")
+        st.warning("A conexão com IA está **desativada**. Ative-a no botão IA no topo da página para usar os recursos de IA.", icon=":material/smart_toy:")
         st.divider()
 
     # 1. Select Provider
@@ -34,12 +34,12 @@ def render_settings_page():
     with col_k1:
         if current_key:
             masked_key = f"{current_key[:4]}...{current_key[-4:]}" if len(current_key) > 8 else "****"
-            st.info(f"🔑 Chave API detectada: `{masked_key}`")
+            st.info(f":material/key: Chave API detectada: `{masked_key}`")
         else:
-            st.error("❌ Chave API não encontrada no arquivo .env!")
+            st.error("Chave API não encontrada no arquivo .env!", icon=":material/error:")
             
     with col_k2:
-        if st.button("✏️ Editar Chave", use_container_width=True):
+        if st.button("Editar Chave", icon=":material/edit:", use_container_width=True):
             st.session_state[f"edit_key_{provider}"] = not st.session_state.get(f"edit_key_{provider}", False)
 
     # Key editing form
@@ -48,7 +48,7 @@ def render_settings_page():
             new_key = st.text_input(f"Nova Chave API para {provider}", type="password", help="Cole a nova chave aqui.")
             
             c1, c2 = st.columns(2)
-            if c1.button("Salvar Chave 💾", type="primary", use_container_width=True):
+            if c1.button("Salvar Chave", icon=":material/save:", type="primary", use_container_width=True):
                 if new_key:
                     success = Config.set_api_key(provider, new_key)
                     if success:
@@ -62,7 +62,7 @@ def render_settings_page():
                 else:
                     st.warning("Insira uma chave válida.")
             
-            if c2.button("Cancelar ❌", use_container_width=True):
+            if c2.button("Cancelar", icon=":material/cancel:", use_container_width=True):
                 st.session_state[f"edit_key_{provider}"] = False
                 st.rerun()
 
@@ -90,14 +90,14 @@ def render_settings_page():
         st.caption(f"Testando conexão com **{provider}** usando modelo **{selected_model}**")
     
     with col2:
-        if st.button("🔄 Verificar Conexão"):
+        if st.button("Verificar Conexão", icon=":material/refresh:"):
             with st.spinner("Conectando aos servidores..."):
                 response = llm_client.check_connection()
                 if response:
-                    st.success("✅ Conectado com sucesso!")
+                    st.success("Conectado com sucesso!", icon=":material/check_circle:")
                     st.balloons()
                 else:
-                    st.error("❌ Falha na conexão. Verifique sua chave ou internet.")
+                    st.error("Falha na conexão. Verifique sua chave ou internet.", icon=":material/cancel:")
 
     # Show live response for verification
     if st.session_state.get("last_test_response"):
@@ -106,9 +106,9 @@ def render_settings_page():
 
     # ── Admin / Dev Tools (moved from sidebar) ──
     st.divider()
-    with st.expander("🛠️ Ferramentas de Admin / Dev"):
+    with st.expander(":material/build: Ferramentas de Admin / Dev"):
         st.caption("Use com cuidado — ações administrativas do sistema.")
-        if st.button("🔄 Recarregar Módulos e Limpar Cache"):
+        if st.button("Recarregar Módulos e Limpar Cache", icon=":material/refresh:"):
             import importlib
             import sys
             import agents.finance_agent
@@ -125,5 +125,5 @@ def render_settings_page():
             st.cache_data.clear()
             st.cache_resource.clear()
 
-            st.toast("Sistema recarregado com sucesso!", icon="✅")
+            st.toast("Sistema recarregado com sucesso!", icon=":material/check_circle:")
             st.rerun()

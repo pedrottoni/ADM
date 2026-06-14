@@ -1,5 +1,5 @@
 """
-🔍 Concorrência — Tab de Concorrencia
+:material/search: Concorrência — Tab de Concorrencia
 """
 
 import streamlit as st

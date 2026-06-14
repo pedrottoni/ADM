@@ -1,67 +1,76 @@
-# 🚀 ADM — Shopee Growth Quest (Hermes Navigation Map)
+# ADM — Shopee Growth Quest
 
-## Visão Geral do Projeto
-Dashboard Streamlit para gestão de loja Shopee (niche saúde/bem-estar/suplementos). Gerencia catálogo, precificação, concorrência, finanças e atendimento, com suporte de IA multi-provider.
+Streamlit dashboard for managing a Shopee health/supplements store. Monolithic app with module-per-tab architecture.
 
-**Stack:** Streamlit + SQLModel + SQLite + Google Gemini / OpenRouter + Tavily + Firecrawl
+**Stack:** Python 3.11 + Streamlit + SQLModel + SQLite + Google Gemini / OpenRouter + Tavily + Firecrawl
 
----
+## Navigation
 
-## 📂 Mapa de Módulos (AGENTS.md)
+Each module has its own `AGENTS.md` — read it before opening source files.
 
-| Pasta | AGENTS.md | O que contém |
-|-------|-----------|-------------|
-| **[`agents/`](./agents/AGENTS.md)** | ✅ | 5 agentes IA: Product, Finance, Ads, Customer + Base |
-| **[`core/`](./core/AGENTS.md)** | ✅ | Config, LLMClient, CompetitorService, SalesService |
-| `core/database/` | ✅ | 8 tabelas (User, Mission, Transaction, Product, ProductVariation, ProductComponent, InventoryItem, CompetitorListing), Engine, Migrations |
-| ↳ `core/gamification/` | ✅ | Engine de XP, níveis, missões |
-| **[`dashboard/`](./dashboard/AGENTS.md)** | ✅ | App Streamlit (entry point) |
-| ↳ `dashboard/tabs/` | ✅ | 7 tabs (Resumo, Financeiro, Marketing, Atendimento, Anúncios, Concorrência, Config) |
-| ↳ `dashboard/components/` | ✅ | Componentes reutilizáveis |
-| **[`scrapers/`](./scrapers/AGENTS.md)** | ✅ | Shopee, Amazon, Enjoei scrapers (Tavily+Firecrawl) |
-| **[`docs/`](./docs/AGENTS.md)** | ✅ | Plano mestre, status do projeto, design system |
-- **[`DESIGN.md`](./DESIGN.md)** | ✅ | Design system Dashdark X (paleta `--dx-*`, sidebar hub, indigo/navy) — em sincronia com `dashboard/static/cupertino.css` |
-| **[`scripts/`](./scripts/AGENTS.md)** | ✅ | Utilitários |
-| **[`data/`](./data/AGENTS.md)** | ✅ | Banco SQLite + dados |
-| **[`tests/`](./tests/AGENTS.md)** | ✅ | (vazio — preparado para testes) |
+| Module | What it contains |
+|--------|------------------|
+| `agents/` | 5 AI agents (Product, Finance, Ads, Customer + Base) |
+| `core/` | Config, LLMClient, CompetitorService, SalesService |
+| `core/database/` | 8 SQLModel tables, engine, migrations |
+| `core/gamification/` | XP, levels, missions (quadratic formula) |
+| `dashboard/` | Streamlit app entry point (`app.py`) |
+| `dashboard/tabs/` | 7 tab modules (one `render(user, agents)` function each) |
+| `dashboard/components/` | Reusable UI components |
+| `scrapers/` | Shopee, Amazon, Enjoei, MercadoLivre, Magalu, Shein (Tavily+Firecrawl) |
+| `docs/` | Project plan and status |
+| `scripts/` | Utility scripts (empty) |
+| `data/` | CSVs only — DB is NOT here |
+| `tests/` | Empty, prepared for pytest |
 
----
+## Critical Rules
 
-## 🧭 Navegação por Tarefa
+1. **DB location**: `database.db` lives at **project root**, NOT in `data/`. The `engine.py` uses a relative path (`sqlite_file_name = "database.db"`), so CWD matters — always run from project root.
+2. **Never commit** `.env` or `database.db` (gitignored).
+3. **Component imports** (`dashboard/components/`) must be **local** (inside the function), not at module top.
+4. **Scraper prices can be zero** — always validate before using.
+5. **`select()` import**: Every file using `session.exec(select(...))` must `from sqlmodel import select` — otherwise `NameError`.
+6. **No Playwright** — removed permanently. Scrapers use Tavily + Firecrawl only.
 
-| Se eu pedir... | Abra primeiro | Depois abra |
-|---------------|---------------|-------------|
-| "criar um anúncio" | `dashboard/tabs/anuncios.py` | `agents/product_agent.py` + `core/database/models.py` |
-| "analisar finanças" | `dashboard/tabs/financeiro.py` | `agents/finance_agent.py` + `core/database/models.py` |
-| "ver concorrência" | `dashboard/components/competitor_view.py` | `scrapers/shopee_scraper.py` + `core/competitor_service.py` |
-| "responder cliente" | `dashboard/tabs/atendimento.py` | `agents/customer_agent.py` |
-| "campanha marketing" | `dashboard/tabs/marketing.py` | `agents/ads_agent.py` |
-| "configurar LLM" | `dashboard/components/settings_view.py` | `core/llm_client.py` + `.env` |
-| "mexer no DB" | `core/database/models.py` | `core/database/engine.py` |
-| "algo não funciona" | Leia o `AGENTS.md` das pastas envolvidas | Verifique `.env`, imports, e `core/config.py` |
+## Running
 
----
+```bash
+# From project root (required for DB path)
+streamlit run dashboard/app.py
 
-## 📐 Arquitetura
-
-```
-Usuário → Dashboard (app.py) → Tabs (tabs/*.py) → Agents → LLMClient / Database / Scrapers
-                                                              ↕
-                                                          Tavily / Firecrawl (externo)
+# Or double-click run_app.bat (Windows)
 ```
 
----
+No linter, formatter, or pre-commit hooks configured. Code review is manual.
 
-## ⚠️ Regras Importantes para o Hermes
+## Technical Quirks
 
-1. **Sempre leia o AGENTS.md** da pasta antes de abrir vários arquivos — economiza contexto
-2. **NUNCA commitar .env ou database.db** (estão no .gitignore)
-3. **Imports de componentes** (`dashboard/components/`) devem ser **locais** (dentro da função), não no topo do módulo
-4. **Preços podem vir zerados** dos scrapers — sempre valide antes de usar
-5. **Se precisar de mais contexto**, leia os AGENTS.md relacionados antes de abrir arquivos
-6. **`select()` do SQLModel** — toda vez que usar `session.exec(select(...))`, lembre de **importar `select`**: `from sqlmodel import select`. Sem isso dá `NameError`. (EXEMPLO em `core/database/AGENTS.md`)
+- **Module-level side effects**: Importing `core/config.py` reads `.env`, `core/database/engine.py` creates the SQLAlchemy engine, `core/llm_client.py` instantiates the LLM client — all at import time before `st.set_page_config()`.
+- **No `__init__.py`** in most packages — works due to Streamlit's CWD-based path resolution but fragile.
+- **Session pattern**: Use `session = next(get_session())` to get a SQLModel session. Some callers don't close explicitly (relying on GC).
+- **LLM fallback**: When primary provider fails and `GOOGLE_API_KEY` exists, automatically falls back to Gemini with a system warning prefix.
+- **Mutable Config**: `Config.set_api_key()`, `Config.set_llm_settings()`, `Config.set_llm_enabled()` mutate in-memory AND persist to `.env`.
+- **`settings_view.py` bug**: Calls `llm_client.setup_provider()` but the method is actually `_setup_provider()` (private). Will raise `AttributeError` at runtime.
+- **Duplicate `MARKETPLACE_LABELS`**: Defined in both `core/competitor_service.py` (with emojis) and `scrapers/__init__.py` (without). Maintenance hazard.
 
----
+## Architecture
 
-> 📌 **Como este sistema funciona:**
-> Cada pasta tem um `AGENTS.md` que descreve o que ela contém, quais arquivos abrir para cada tarefa, e as dependências. Quando você pedir uma tarefa, o Hermes deve ler o AGENTS.md relevante (não todos os arquivos da pasta) para entender o que fazer. Isso economiza contexto e acelera o desenvolvimento.
+```
+User → Dashboard (app.py) → Tabs (tabs/*.py) → Agents → LLMClient / Database / Scrapers
+                                                           ↕
+                                                       Tavily / Firecrawl (external)
+```
+
+## Adding a New Tab
+
+1. Create `dashboard/tabs/new_tab.py` with `render(user, agents)`
+2. Register in `dashboard/tabs/__init__.py` → `TAB_RENDERERS`
+3. Add label + key in `dashboard/app.py`
+
+## Testing
+
+```bash
+pytest tests/
+```
+
+Mock Tavily/Firecrawl in tests. No integration test infrastructure yet.

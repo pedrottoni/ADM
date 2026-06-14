@@ -1,46 +1,52 @@
-# ⚙️ Core — Serviços Centrais
+# Core — Central Services
 
-## Visão Geral
-Camada de infraestrutura do projeto: configuração, LLM, serviços de negócio, banco de dados e gamificação.
+## Overview
+Infrastructure layer: configuration, LLM, business services, database, and gamification.
 
-## Arquivos
+## Files
 
-| Arquivo | Propósito |
-|---------|-----------|
-| `config.py` | Carrega `.env`, expõe Config.LLM_PROVIDER, SHOPEE_*, API keys. Classe `Config` é **mutável** e persiste mudanças em `.env` via `set_api_key()`, `set_llm_settings()`, `set_llm_enabled()` |
-| `llm_client.py` | Cliente LLM multi-provider (Gemini via `google.genai`, OpenRouter + NVIDIA via OpenAI-compatible) com fallback automático para Gemini quando primary falha. Tem método `generate_content()` (texto) e `generate_with_image()` (Vision) |
-| `competitor_service.py` | `CompetitorService` — orquestra scrapers + matching IA + persistência. Métodos principais: `search_competitors()`, `confirm_match()` (revisão manual), `get_competitiveness_badge()` ("mais barato"/"abaixo da média"/"na média"/"acima da média"/"sem dados") |
-| `sales_service.py` | `SalesService` — processa vendas em lote. Faz fuzzy match do `product_name` com `Product.title` (threshold 55%), decrementa `Product.stock` + `InventoryItem.stock` (via multiplicador `ProductComponent.quantity`), checa duplicatas. **API**: `match_product()`, `process_sale()`, `check_duplicate()`, `process_income_batch()` |
+| File | Purpose |
+|------|---------|
+| `config.py` | Loads `.env`, exposes Config.LLM_PROVIDER, SHOPEE_*, API keys. `Config` is **mutable** — persists changes to `.env` via `set_api_key()`, `set_llm_settings()`, `set_llm_enabled()` |
+| `llm_client.py` | Multi-provider LLM client (Gemini via `google.genai`, OpenRouter + NVIDIA via OpenAI-compatible) with automatic Gemini fallback. Methods: `generate_content()` (text) and `generate_with_image()` (Vision) |
+| `competitor_service.py` | `CompetitorService` — orchestrates scrapers + AI matching + persistence. Key methods: `search_competitors()`, `confirm_match()` (manual review), `get_competitiveness_badge()` |
+| `sales_service.py` | `SalesService` — batch sale processing. Fuzzy matches `product_name` to `Product.title` (55% threshold), decrements stock, checks duplicates. API: `match_product()`, `process_sale()`, `check_duplicate()`, `process_income_batch()` |
 
-## Submódulos
+## Sub-modules
 
 ### `database/` → [AGENTS.md](./database/AGENTS.md)
-Models SQLModel + engine + migrations.
+SQLModel tables + engine + migrations.
 
 ### `gamification/` → [AGENTS.md](./gamification/AGENTS.md)
-Engine de XP, níveis e missões.
+XP, levels, and missions engine.
 
-## Como Usar
+## How to Use
 
-### Para configurar API keys / provider:
-1. Abrir `config.py` + `.env` (raiz)
-2. `Config.LLM_PROVIDER` controla qual LLM está ativo
+### Configure API keys / provider:
+1. Edit `config.py` + `.env` (root)
+2. `Config.LLM_PROVIDER` controls which LLM is active
 
-### Para debug de LLM:
-1. Abrir `llm_client.py` — métodos `generate_content(prompt, use_search=False)` e `generate_with_image(prompt, image_bytes, mime_type)` (Vision)
+### Debug LLM:
+1. Open `llm_client.py` — methods `generate_content(prompt, use_search=False)` and `generate_with_image(prompt, image_bytes, mime_type)` (Vision)
 2. Providers: gemini → `google.genai`, openrouter/nvidia → OpenAI-compatible
-3. `use_search=True` (Gemini) aciona Google Search grounding nos resultados
-4. Quando provider falha, faz fallback automático para Gemini (se `GOOGLE_API_KEY` existir) e prefixa a resposta com aviso ⊳ "Backup (Gemini)..."
-5. `LLMClient.set_enabled(bool)` persiste em `.env` (toggle do sidebar é persistente, não só em memória)
+3. `use_search=True` (Gemini only) enables Google Search grounding
+4. When primary provider fails, auto-falls back to Gemini (if `GOOGLE_API_KEY` exists) with warning prefix
+5. `LLMClient.set_enabled(bool)` persists to `.env` (sidebar toggle is persistent)
 
-### Para mudar provider/model em runtime:
-- `Config.set_llm_settings(provider, model)` persiste em `.env`
-- `Config.set_api_key(provider, new_key)` atualiza a key (gemini/openrouter/nvidia)
+### Change provider/model at runtime:
+- `Config.set_llm_settings(provider, model)` persists to `.env`
+- `Config.set_api_key(provider, new_key)` updates the key (gemini/openrouter/nvidia)
 
-### Para monitoramento de concorrência:
-1. Abrir `competitor_service.py` + `scrapers/AGENTS.md`
+### Competitor monitoring:
+1. Open `competitor_service.py` + `scrapers/AGENTS.md`
 
-## Dependências
-- `agents/` — usa agentes em alguns fluxos
-- `scrapers/` — `competitor_service.py` consome scrapers
-- `.env` — Config carrega da raiz
+## Technical Quirks
+
+- **`settings_view.py` bug**: Calls `llm_client.setup_provider()` but method is actually `_setup_provider()` (private). Will raise `AttributeError` at runtime.
+- **Duplicate `MARKETPLACE_LABELS`**: Defined in both `core/competitor_service.py` (with emojis) and `scrapers/__init__.py` (without). Maintenance hazard.
+- `Config` class methods mutate in-memory AND persist to `.env` simultaneously
+
+## Dependencies
+- `agents/` — used in some flows
+- `scrapers/` — `competitor_service.py` consumes scrapers
+- `.env` — Config loads from root

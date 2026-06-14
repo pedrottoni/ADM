@@ -1,45 +1,45 @@
-# 📊 Dashboard — Interface Streamlit
+# Dashboard — Streamlit UI
 
-## Visão Geral
-Frontend Streamlit do ADM. Entry point em `app.py`, cada tab é um módulo separado em `tabs/`.
+## Overview
+Frontend Streamlit app. Entry point in `app.py`, each tab is a separate module in `tabs/`.
 
-## Arquivos
+## Files
 
-| Arquivo | Propósito |
-|---------|-----------|
-| `app.py` | **Entry point**. Inicializa DB, agents, sidebar. Cria 7 tabs e delega renderização |
-| `main.py` | ⚠️ **Depreciado**. Redireciona para `app.py` |
+| File | Purpose |
+|------|---------|
+| `app.py` | **Entry point**. Initializes DB, agents, sidebar. Creates 7 tabs and delegates rendering |
+| `main.py` | **Deprecated**. Redirects to `app.py` |
 
-## Submódulos
+## Sub-modules
 
 ### `tabs/` → [AGENTS.md](./tabs/AGENTS.md)
-Uma função `render(user, agents)` por tab.
+One `render(user, agents)` function per tab.
 
-### `static/` (não tem AGENTS.md próprio)
-- `static/cupertino.css` — **~720 linhas CSS**, source of truth do design system Dashdark X (paleta `--dx-*`, todas as variantes de componentes). Carregado por `dashboard/app.py` no boot. **Ver [DESIGN.md](../../DESIGN.md) antes de mexer.**
+### `static/` (no own AGENTS.md)
+- `static/cupertino.css` — **~720 lines CSS**, source of truth for Dashdark X design system (`--dx-*` palette, all component variants). Loaded by `app.py` at boot. **See [DESIGN.md](../../DESIGN.md) before modifying.**
 
 ### `components/` → [AGENTS.md](./components/AGENTS.md)
-Componentes UI reutilizáveis (concorrência, configurações, metric_card).
+Reusable UI components (competitor view, settings, metric cards).
 
-## Como Usar
+## How to Use
 
-### Para rodar o dashboard:
+### Run the dashboard:
 ```bash
 streamlit run dashboard/app.py
 ```
 
-### Para adicionar uma nova tab:
-1. Criar `dashboard/tabs/nova_tab.py` com função `render(user, agents)`
-2. Adicionar em `dashboard/tabs/__init__.py` → `TAB_RENDERERS`
-3. Adicionar label + key em `dashboard/app.py`
+### Add a new tab:
+1. Create `dashboard/tabs/new_tab.py` with `render(user, agents)`
+2. Add to `TAB_RENDERERS` in `__init__.py`
+3. Add label + key in `dashboard/app.py`
 
-### Para tarefa "quero mexer na tab Financeiro":
-1. Abrir `dashboard/app.py` (entry point)
-2. Abrir `dashboard/tabs/financeiro.py` (render da tab)
-3. `core/` e `core/database/` se precisar de dados
+## Technical Quirks
 
-## Dependências
-- `agents/` — todas as tabs usam agents
+- **CSS debug marker**: `app.py` injects a `<meta name="css-loaded">` tag with diagnostic data — dev-time aid left in production code
+- **Module-level side effects**: Importing `app.py` triggers Config, engine, and LLM client initialization before `st.set_page_config()`
+- **`st.set_page_config()`** must be the first Streamlit command — order matters
+
+## Dependencies
+- `agents/` — all tabs use agents
 - `core/` — config, llm_client
 - `core/database/` — models + engine
-- `dashboard/tabs/AGENTS.md` — documentação por tab

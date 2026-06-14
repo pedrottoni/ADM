@@ -1,21 +1,21 @@
-# 🧪 Tests — Testes Automatizados
+# Tests — Automated Tests
 
-## Visão Geral
-Testes unitários e de integração.
+## Overview
+Unit and integration tests.
 
 ## Status
-🚧 **Pasta preparada para testes — nenhum implementado ainda.**
+🚧 **Prepared for tests — none implemented yet.**
 
-## Como Adicionar Testes
+## How to Add Tests
 ```bash
-# Rodar todos os testes
+# Run all tests
 python -m pytest tests/
 
-# Rodar um arquivo específico
+# Run specific file
 python -m pytest tests/test_scrapers.py -v
 ```
 
-## Convenções
-- Testes usam `pytest`
-- Nome dos arquivos: `test_*.py`
-- Mock Tavily/Firecrawl em testes de scraper (não chamar API real)
+## Conventions
+- Tests use `pytest`
+- File naming: `test_*.py`
+- Mock Tavily/Firecrawl in scraper tests (don't call real APIs)

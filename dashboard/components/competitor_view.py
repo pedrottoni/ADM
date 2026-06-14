@@ -26,7 +26,7 @@ def render_competitor_page(user_id: int):
 
     with col_search:
         st.markdown("<br>", unsafe_allow_html=True)
-        search_clicked = st.button("🔎 Buscar Preços", type="primary", use_container_width=True)
+        search_clicked = st.button("Buscar Preços", icon=":material/search:", type="primary", use_container_width=True)
 
     marketplaces_sel = st.multiselect(
         "Marketplaces para monitorar",
@@ -44,11 +44,11 @@ def render_competitor_page(user_id: int):
             with st.spinner("Buscando preços nos marketplaces... Isso pode levar alguns minutos."):
                 status_placeholder = st.empty()
                 for mp in marketplaces_sel:
-                    status_placeholder.info(f"🔍 Buscando em {MARKETPLACE_LABELS.get(mp, mp)}...")
+                    status_placeholder.info(f":material/search: Buscando em {MARKETPLACE_LABELS.get(mp, mp)}...")
                 results = competitor_service.search_competitors(selected_product_id, marketplaces_sel, keyword=search_keyword.strip())
                 status_placeholder.empty()
                 if results:
-                    st.success(f"✅ {len(results)} resultados encontrados!")
+                    st.success(f"{len(results)} resultados encontrados!", icon=":material/check_circle:")
                 else:
                     st.warning("Nenhum resultado encontrado. Tente termos de busca diferentes ou verifique as sessões de login.")
                 st.rerun()
@@ -57,11 +57,11 @@ def render_competitor_page(user_id: int):
 
     if existing_data:
         badge = competitor_service.get_competitiveness_badge(selected_product_id)
-        badge_colors = {"green": "🟢", "orange": "🟠", "red": "🔴", "gray": "⚪"}
-        st.markdown(f"### {badge_colors.get(badge['color'], '⚪')} {badge['label']}")
+        badge_colors = {"green": ":material/check_circle:", "orange": ":material/warning_amber:", "red": ":material/cancel:", "gray": ":material/help:"}
+        st.markdown(f"### {badge_colors.get(badge['color'], ':material/help:')} {badge['label']}")
 
         st.divider()
-        st.subheader("📊 Tabela Comparativa")
+        st.markdown("#### :material/analytics: Tabela Comparativa")
 
         product_obj = next((p for p in products if p.id == selected_product_id), None)
         our_price = product_obj.price if product_obj else 0
@@ -81,7 +81,7 @@ def render_competitor_page(user_id: int):
         for d in existing_data:
             mp_label = MARKETPLACE_LABELS.get(d["marketplace"], d["marketplace"])
             diff_sign = "+" if d["price_diff"] >= 0 else ""
-            conf_icon = "✅" if d["is_confirmed_match"] else ("🔍" if d.get("confidence_score") in ["alto", "médio"] else "❓")
+            conf_icon = ":material/check_circle:" if d["is_confirmed_match"] else (":material/search:" if d.get("confidence_score") in ["alto", "médio"] else ":material/help:")
 
             table_data.append({
                 "MP": mp_label,
@@ -100,7 +100,7 @@ def render_competitor_page(user_id: int):
             st.dataframe(df, use_container_width=True, hide_index=True)
 
         st.divider()
-        st.subheader("✅ Confirmar Matches")
+        st.markdown("#### :material/check_circle: Confirmar Matches")
 
         unconfirmed = [d for d in existing_data if not d["is_confirmed_match"]]
         if unconfirmed:
@@ -113,11 +113,11 @@ def render_competitor_page(user_id: int):
                         st.caption(f"Preço: R${d['competitor_price']:.2f} | Confiança IA: {d.get('confidence_score', '—')} | Vendedor: {d.get('competitor_seller', '—')}")
                     with col_actions:
                         c1, c2 = st.columns(2)
-                        if c1.button("✅", key=f"confirm_{d['id']}"):
+                        if c1.button("Confirmar", icon=":material/check:", key=f"confirm_{d['id']}"):
                             competitor_service.confirm_match(d["id"], True)
                             st.toast("Match confirmado!")
                             st.rerun()
-                        if c2.button("❌", key=f"reject_{d['id']}"):
+                        if c2.button("Rejeitar", icon=":material/cancel:", key=f"reject_{d['id']}"):
                             competitor_service.confirm_match(d["id"], False)
                             st.toast("Match rejeitado!")
                             st.rerun()
@@ -127,7 +127,7 @@ def render_competitor_page(user_id: int):
         st.divider()
         col_clear1, col_clear2 = st.columns([1, 4])
         with col_clear1:
-            with st.popover("🗑️ Limpar Dados", use_container_width=True):
+            with st.popover(":material/delete: Limpar Dados", use_container_width=True):
                 st.error("Tem certeza? Os dados de concorrência deste produto serão apagados.")
                 if st.button("Sim, limpar tudo", type="primary", key="confirm_clear_comp"):
                     competitor_service.clear_listings(selected_product_id)

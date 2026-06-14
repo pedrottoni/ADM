@@ -1,18 +1,18 @@
-# 📚 Docs — Documentação do Projeto
+# Docs — Project Documentation
 
-## Visão Geral
-Documentação de planejamento, status e arquitetura.
+## Overview
+Planning, status, and architecture documentation.
 
-## Arquivos
+## Files
 
-| Arquivo | Propósito |
-|---------|-----------|
-| `plano_mestre.md` | Plano mestre com fases: migração genai → Tavily/Firecrawl → Bundle UI → Gamificação → API Shopee → Multi-usuário |
-| `status_projeto.md` | Status atual, pendências, histórico de decisões |
+| File | Purpose |
+|------|---------|
+| `plano_mestre.md` | Master plan with phases: genai migration → Tavily/Firecrawl → UI Bundle → Gamification → Shopee API → Multi-user |
+| `status_projeto.md` | Current status, pending items, decision history |
 
-## Como Usar
-- **Para consultar próximos passos:** ler `plano_mestre.md`
-- **Para saber o que já foi feito:** ler `status_projeto.md`
+## How to Use
+- **Next steps:** read `plano_mestre.md`
+- **What's been done:** read `status_projeto.md`
 
-## Dependências
-- Nenhuma. Docs são referência, não código.
+## Dependencies
+- None. Docs are reference, not code.

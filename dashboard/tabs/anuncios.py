@@ -1,5 +1,5 @@
 """
-📦 Meus Anúncios — Tab de Anuncios
+:material/inventory_2: Meus Anúncios — Tab de Anuncios
 """
 
 import streamlit as st
@@ -118,7 +118,7 @@ def render(user, agents):
             total_cogs_vendas += ad_cogs
             total_receita_real += ad_receita
 
-    sub_tab_vendas, sub_tab_estoque, sub_tab_calc = st.tabs(["📊 Desempenho de Vendas", "🏬 Estoque de Potes", "🧮 Calculadora de Preços"])
+    sub_tab_vendas, sub_tab_estoque, sub_tab_calc = st.tabs([":material/analytics: Desempenho de Vendas", ":material/store: Estoque de Potes", ":material/calculate: Calculadora de Preços"])
 
     with sub_tab_vendas:
         st.subheader("Performance Comercial")
@@ -136,7 +136,7 @@ def render(user, agents):
             with c2: metric_card("Custo (COGS)", f"R$ {total_cogs_vendas:,.2f}")
             with c3: metric_card("Ticket Médio", f"R$ {ticket_medio:,.2f}")
             with c4: metric_card("Margem %", f"{total_margem:.1f}%",
-                     delta="🟢" if total_margem >= 20 else ("🟡" if total_margem >= 10 else "🔴"))
+                     delta=":material/check_circle:" if total_margem >= 20 else (":material/warning_amber:" if total_margem >= 10 else ":material/cancel:"))
             with c5: metric_card("ROI", f"{roi:.0f}%")
 
             # Métricas secundárias
@@ -157,9 +157,9 @@ def render(user, agents):
                 margem_color = "green" if grp_margem >= 20 else ("orange" if grp_margem >= 10 else "red")
 
                 if data['receita'] > 0:
-                    label = f"📦 {base_name} **:green[Vendidos: {data['units']} un.] &nbsp;|&nbsp; Receita: R$ {data['receita']:,.2f} &nbsp;|&nbsp; :{margem_color}[Margem: {grp_margem:.1f}%]**"
+                    label = f":material/inventory_2: {base_name} **:green[Vendidos: {data['units']} un.]** &nbsp;|&nbsp; Receita: **R$ {data['receita']:,.2f}** &nbsp;|&nbsp; **:green[Margem: {grp_margem:.1f}%]**"
                 else:
-                    label = f"📦 {base_name} **:green[Vendidos: {data['units']} un.] &nbsp;|&nbsp; :red[Custo: R$ {data['cogs']:,.2f}]**"
+                    label = f":material/inventory_2: {base_name} **:green[Vendidos: {data['units']} un.]** &nbsp;|&nbsp; :red[Custo: R$ {data['cogs']:,.2f}]**"
 
                 with st.expander(label):
                     for v in data["variations"]:
@@ -214,7 +214,7 @@ def render(user, agents):
             st.info("Nenhum anúncio mapeado.")
 
     with sub_tab_estoque:
-        st.subheader("🏬 Inventário de Potes")
+        st.markdown("#### :material/store: Inventário de Potes")
 
         # Filtro de período com calendário (dia 15 a 14 do mês seguinte)
         from datetime import datetime, timedelta
@@ -306,7 +306,7 @@ def render(user, agents):
                 "Potes Vendidos (Total)": vendidos_por_item.get(item.id, 0)
             } for item in inventory_items])
 
-            st.info("💡 O estoque é controlado centralmente pelo **Estoque de Potes Físicos**. Os anúncios virtuais (Shopee) apenas refletem essa disponibilidade.")
+            st.info("O estoque é controlado centralmente pelo **Estoque de Potes Físicos**. Os anúncios virtuais (Shopee) apenas refletem essa disponibilidade.", icon=":material/lightbulb:")
 
 
 
@@ -333,7 +333,7 @@ def render(user, agents):
                 st.success("Estoque e custos atualizados!")
                 st.rerun()
 
-        with st.expander("➕ Novo Item Físico"):
+        with st.expander(":material/add: Novo Item Físico"):
             col_i1, col_i2, col_i3 = st.columns(3)
             ni_name = col_i1.text_input("Nome", key="ni_name_inp")
             ni_cost = col_i2.number_input("Custo", min_value=0.0, key="ni_cost_inp")
@@ -346,13 +346,13 @@ def render(user, agents):
                 st.success("Adicionado!"); st.rerun()
 
     with sub_tab_calc:
-        st.subheader("🧮 Simulador de Precificação e Lucro")
+        st.markdown("#### :material/calculate: Simulador de Precificação e Lucro")
         st.info("Utilize esta calculadora para planejar seus preços antes de publicar os anúncios, analisando todas as taxas da Shopee, impostos e custos de fornecedor.")
 
         col_in, col_out = st.columns([1, 1], gap="large")
 
         with col_in:
-            st.markdown("### 📥 Parâmetros do Anúncio")
+            st.markdown("### :material/file_download: Parâmetros do Anúncio")
 
             c_p1, c_p2 = st.columns(2)
             calc_cost = c_p1.number_input("Custo Fornecedor (unit.) R$", min_value=0.0, value=15.0, step=1.0, format="%.2f", help="Valor pago pelo item físico")
@@ -363,7 +363,7 @@ def render(user, agents):
             calc_coupon_pct = c_q2.number_input("Cupom da Loja (%)", min_value=0.0, value=0.0, step=1.0, format="%.1f", help="Desconto percentual dado por você")
             calc_other_discount_pct = c_q3.number_input("Outros Desc. (%)", min_value=0.0, value=0.0, step=1.0, format="%.1f", help="Promoções como Leve mais por Menos")
 
-            st.markdown("### 💸 Taxas e Encargos")
+            st.markdown("### :material/receipt_long: Taxas e Encargos")
 
             c_t1, c_t2 = st.columns(2)
             calc_shopee_pct = c_t1.selectbox("Tarifa Shopee (%)", options=[20.0, 14.0], format_func=lambda x: f"{x}% (Frete Grátis)" if x == 20 else f"{x}% (Padrão)", help="Comissão + Taxa de Transação (2%)")
@@ -376,7 +376,7 @@ def render(user, agents):
             calc_extra = st.number_input("Custos Extras (Embalagem, etc) R$", min_value=0.0, value=0.0, step=1.0, format="%.2f", help="Custo por pedido")
 
         with col_out:
-            st.markdown("### 📈 Resultados e Saúde Financeira")
+            st.markdown("### :material/trending_up: Resultados e Saúde Financeira")
 
             gross_revenue = calc_price
 
@@ -408,7 +408,7 @@ def render(user, agents):
             roi = (net_profit / custo_fornecedor_total * 100.0) if custo_fornecedor_total > 0 else 0.0
             repasse_shopee = net_revenue_base - comissao_shopee - taxa_fixa_shopee - custo_ads
 
-            margin_color = "🟢" if profit_margin >= 20 else ("🟡" if profit_margin >= 10 else "🔴")
+            margin_color = ":material/check_circle:" if profit_margin >= 20 else (":material/warning_amber:" if profit_margin >= 10 else ":material/cancel:")
 
             metric_card("Lucro Líquido Real", f"R$ {net_profit:,.2f}", delta=f"{margin_color} {profit_margin:.1f}%")
 
@@ -441,7 +441,7 @@ def render(user, agents):
 
 
     st.divider()
-    with st.expander("📑 Editor de Anúncios Shopee (SKUs Virtuais)"):
+    with st.expander(":material/description: Editor de Anúncios Shopee (SKUs Virtuais)"):
         if products:
             df_prods = pd.DataFrame([{"ID": p.id, "Título": p.title, "Preço": p.price} for p in products])
             edit_ads = st.data_editor(df_prods, column_config={"ID": None}, hide_index=True, use_container_width=True, key="ads_ed")
@@ -453,7 +453,7 @@ def render(user, agents):
         else:
             st.info("Nenhum anúncio para editar.")
 
-        with st.expander("➕ Novo SKU Virtual (Manual)"):
+        with st.expander(":material/add: Novo SKU Virtual (Manual)"):
             col_nv1, col_nv2 = st.columns([2, 1])
             nv_title = col_nv1.text_input("Título do Anúncio", key="nv_title_inp")
             nv_price = col_nv2.number_input("Preço de Venda", min_value=0.0, key="nv_price_inp")
@@ -468,9 +468,9 @@ def render(user, agents):
 
     # 2. ADICIONAR ANÚNCIO (The core engine)
     with st.container(border=True):
-        st.subheader("➕ Adicionar Novo Anúncio com IA")
+        st.markdown("#### :material/add: Adicionar Novo Anúncio com IA")
 
-        method = st.radio("Método de Criação:", ["Manual (Texto)", "Imagem (Vision + IA Search) 📸"], horizontal=True)
+        method = st.radio("Método de Criação:", ["Manual (Texto)", "Imagem (Vision + IA Search)"], horizontal=True)
 
         if method == "Manual (Texto)":
             col_m1, col_m2 = st.columns([1, 1])
@@ -480,21 +480,21 @@ def render(user, agents):
             with col_m2:
                 p_ben = st.text_area("Principais Benefícios", placeholder="Ex: Aumento de força...", key="manual_ben")
 
-            if st.button("Gerar Anúncio ✨", type="primary", key="btn_manual"):
+            if st.button("Gerar Anúncio", icon=":material/auto_awesome:", type="primary", key="btn_manual"):
                 if p_name and p_ben:
-                    with st.spinner("🤖 Analisando e criando copy..."):
+                    with st.spinner("Analisando e criando copy..."):
                         listing = product_agent.generate_listing(p_name, p_ben, p_ing)
                         st.session_state.last_generated_res = listing
                 else:
                     st.warning("Preencha o Nome e os Benefícios.")
 
         else: # Image Method
-            st.info("💡 Passo 1: Envie uma foto e a IA identificará o produto. Passo 2: Você revisa e geramos o anúncio com busca web.")
+            st.info("Passo 1: Envie uma foto e a IA identificará o produto. Passo 2: Você revisa e geramos o anúncio com busca web.", icon=":material/lightbulb:")
             img_file = st.file_uploader("Upload da Imagem do Produto", type=["jpg", "jpeg", "png"])
 
             if img_file:
                 st.image(img_file, width=200)
-                if st.button("Passo 1: Extrair Informações 📸", type="primary"):
+                if st.button("Passo 1: Extrair Informações", icon=":material/photo_camera:", type="primary"):
                     with st.spinner("Lendo rótulo..."):
                         img_bytes = img_file.getvalue()
                         info = product_agent.extract_product_info(img_bytes)
@@ -503,11 +503,11 @@ def render(user, agents):
 
             if 'extracted_info' in st.session_state:
                 st.divider()
-                st.markdown("### 📝 Informações Detectadas")
+                st.markdown("### :material/edit_note: Informações Detectadas")
                 st.caption("Ajuste os dados abaixo se necessário antes da pesquisa web.")
                 edited_info = st.text_area("Dados do Produto", value=st.session_state.extracted_info, height=150)
 
-                if st.button("Passo 2: Gerar Anúncio Completo (com Busca Web) 🔍", type="primary"):
+                if st.button("Passo 2: Gerar Anúncio Completo (com Busca Web)", icon=":material/search:", type="primary"):
                     with st.spinner("Pesquisando na internet e criando copy..."):
                         listing = product_agent.generate_from_extracted_info(edited_info)
                         st.session_state.last_generated_res = listing
@@ -518,7 +518,7 @@ def render(user, agents):
         if 'last_generated_res' in st.session_state:
             res = st.session_state.last_generated_res
             st.divider()
-            st.markdown("### 🕵️ Revisão e Ajustes Finais")
+            st.markdown("### :material/search: Revisão e Ajustes Finais")
 
             edit_title = st.text_input("Título SEO", value=res['title'])
             edit_keys = st.text_area("Keywords (Tags)", value=res.get('keywords', ''))
@@ -528,7 +528,7 @@ def render(user, agents):
             p_price = col1.number_input("Preço de Venda (R$)", min_value=0.0, step=1.0, value=0.0, key="price_input")
             p_stock = col2.number_input("Estoque Inicial", min_value=0, step=1, value=100, key="stock_input")
 
-            if st.button("💾 Confirmar e Salvar no Catálogo", type="primary", width="stretch"):
+            if st.button("Confirmar e Salvar no Catálogo", icon=":material/save:", type="primary", width="stretch"):
                 final_data = {
                     "title": edit_title,
                     "description": edit_desc,
@@ -546,7 +546,7 @@ def render(user, agents):
 
     # --- NEW: BUNDLE / KIT COMPOSITION UI ---
     st.divider()
-    with st.expander("🛠️ Configurar Composição de Kits (Vincular Itens Físicos)"):
+    with st.expander(":material/build: Configurar Composição de Kits (Vincular Itens Físicos)"):
         st.caption("Associe anúncios da Shopee (SKUs Virtuais) aos produtos que você tem na prateleira.")
 
         # 1. Select Product
@@ -567,7 +567,7 @@ def render(user, agents):
                     for comp in components:
                         c_col1, c_col2, c_col3 = st.columns([3, 1, 1])
                         item_name = inv_map.get(comp.inventory_item_id, "Item Desconhecido")
-                        c_col1.write(f"🔹 {comp.quantity}x {item_name}")
+                        c_col1.write(f":material/fiber_manual_record: {comp.quantity}x {item_name}")
                         if c_col3.button("Remover", key=f"del_comp_{comp.id}"):
                             res = product_agent.delete_product_component(comp.id)
                             if res["success"]:
@@ -606,11 +606,11 @@ def render(user, agents):
     col_ie1, col_ie2 = st.columns(2)
 
     with col_ie1:
-        with st.expander("📥 Importar da Shopee (CSV)"):
+        with st.expander(":material/file_download: Importar da Shopee (CSV)"):
             st.caption("Suba o arquivo CSV exportado da Shopee para cadastrar em massa.")
             up_file = st.file_uploader("Selecione o CSV", type=["csv"], key="import_csv")
             if up_file:
-                if st.button("Processar Importação 📥", key="btn_import"):
+                if st.button("Processar Importação", icon=":material/file_download:", key="btn_import"):
                     with st.spinner("Importando produtos..."):
                         imp_res = product_agent.process_csv_import(up_file, user.id)
                         if imp_res["success"]:
@@ -620,7 +620,7 @@ def render(user, agents):
                             st.error(imp_res["message"])
 
     with col_ie2:
-        with st.expander("📤 Exportar para Shopee (CSV)"):
+        with st.expander(":material/file_upload: Exportar para Shopee (CSV)"):
             st.caption("Selecione os produtos do catálogo para gerar o arquivo de upload.")
             products_to_export = product_agent.get_all_products(user.id)
 
@@ -634,7 +634,7 @@ def render(user, agents):
                 edited_exp = st.data_editor(df_exp, hide_index=True, width="stretch", key="export_editor")
                 selected_ids = edited_exp[edited_exp["Sel"] == True]["ID"].tolist()
 
-                if st.button("Gerar CSV 📤", key="btn_export"):
+                if st.button("Gerar CSV", icon=":material/file_upload:", key="btn_export"):
                     if selected_ids:
                         selected_prods = [p for p in products_to_export if p.id in selected_ids]
                         export_data = []

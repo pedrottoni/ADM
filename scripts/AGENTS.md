@@ -1,17 +1,17 @@
-# 🛠️ Scripts — Utilitários
+# Scripts — Utilities
 
-## Visão Geral
-Scripts avulsos para manutenção, migração e tarefas pontuais.
+## Overview
+Standalone scripts for maintenance, migration, and ad-hoc tasks.
 
-## Arquivos
+## Files
 
-*(Adicione scripts aqui conforme necessário)*
+*(Add scripts here as needed)*
 
-## Como Usar
+## How to Use
 ```bash
-python scripts/<nome>.py
+python scripts/<name>.py
 ```
 
-## Dependências
-- `core/database/engine.py` — scripts que acessam DB
-- `core/config.py` — scripts que usam Config
+## Dependencies
+- `core/database/engine.py` — scripts that access DB
+- `core/config.py` — scripts that use Config

@@ -1,21 +1,21 @@
-# 📋 Plano Mestre — Shopee Growth Quest (ADM)
+# Plano Mestre — Shopee Growth Quest (ADM)
 
 > Versão: 1.0 — 12/jun/2026
 > Baseado em inspeção completa do projeto em `C:\Proiectum\Loja\ADM`
 
 ---
 
-## 🩺 Diagnóstico Inicial (Status Quo)
+## Diagnóstico Inicial (Status Quo)
 
 ### Ambiente
 | Item | Status | Detalhe |
 |------|--------|---------|
-| Python 3.11.15 (Hermes venv) | ✅ | Disponível |
-| pip instalado no venv | ✅ | `ensurepip` rodado |
-| Dependências instaladas | ✅ | 28 pacotes (streamlit 1.58, sqlmodel 0.0.38, etc.) |
-| Playwright browser binaries | ❌ | `playwright install` pendente |
-| `google.generativeai` deprecated | ⚠️ | Migrar para `google.genai` |
-| `.env` com chaves reais | ✅ | GOOGLE_API_KEY, OPENROUTER_API_KEY, NVIDIA_API_KEY |
+| Python 3.11.15 (Hermes venv) | OK | Disponível |
+| pip instalado no venv | OK | `ensurepip` rodado |
+| Dependências instaladas | OK | 28 pacotes (streamlit 1.58, sqlmodel 0.0.38, etc.) |
+| Playwright browser binaries | Pendente | `playwright install` pendente |
+| `google.generativeai` deprecated | Ação necessária | Migrar para `google.genai` |
+| `.env` com chaves reais | OK | GOOGLE_API_KEY, OPENROUTER_API_KEY, NVIDIA_API_KEY |
 
 ### Database (SQLite — 295KB)
 | Métrica | Valor |
@@ -45,9 +45,9 @@
 
 ---
 
-## 🏗️ PLANO DE TRABALHO — 9 FRENTES
+## PLANO DE TRABALHO — 9 FRENTES
 
-### 🔴 FASE 1 — Estabilização (fundação)
+### FASE 1 — Estabilização (fundação)
 
 #### 1.1 Playwright + Browser Binaries
 **O que**: Instalar o Chromium do Playwright para scrapers e browser engine funcionarem.
@@ -72,7 +72,7 @@ streamlit run dashboard/main.py --server.headless true &
 
 ---
 
-### 🔴 FASE 2 — Qualidade e Manutenibilidade
+### FASE 2 — Qualidade e Manutenibilidade
 
 #### 2.1 Infraestrutura de Testes
 **O que**: Criar estrutura mínima de testes (pytest).
@@ -97,8 +97,8 @@ dashboard/
 │   ├── atendimento.py   # Customer Hero
 │   ├── produtos.py      # Gestão de anúncios, kits, estoque
 ├── components/
-│   ├── competitor_view.py   # ✅ já existe
-│   └── settings_view.py     # ✅ já existe
+│   ├── competitor_view.py   # já existe
+│   └── settings_view.py     # já existe
 ```
 **Risco**: Streamlit não tem suporte nativo a múltiplos arquivos numa single-page app. Solução: usar funções importadas ou `st.Page`/`st.navigation` (novo no Streamlit 1.36+).
 
@@ -110,7 +110,7 @@ dashboard/
 
 ---
 
-### 🟡 FASE 3 — Features Pendentes (Alta Prioridade)
+### FASE 3 — Features Pendentes (Alta Prioridade)
 
 #### 3.1 Bundle UI — Interface de Composição de Kits
 **O que**: Interface visual no Dashboard (seção Produtos) para:
@@ -118,7 +118,7 @@ dashboard/
 - Arrastar/quantificar componentes de um `Product`
 - Visualizar árvore de componentes (Product → InventoryItems com quantidades)
 **Por que**: Hoje a composição de kits é via código/dados brutos. O vendedor precisa montar kits manualmente.
-**Onde**: Tab "📦 Gestão de Anúncios" — nova subseção ou modal.
+**Onde**: Tab "Meus Anúncios" — nova subseção ou modal.
 **SQL**: `INSERT INTO productcomponent (product_id, inventory_item_id, quantity) VALUES (?, ?, ?)`
 **UX**: Streamlit `data_editor` + selectbox + botão "Vincular"
 
@@ -128,15 +128,15 @@ dashboard/
 - **Ritmo de vendas**: quantas unidades de cada InventoryItem foram vendidas nos últimos 7/30 dias (via ProductComponent → Transaction)
 - Projeção: "Se continuar nesse ritmo, estoque acaba em X dias"
 **Por que**: Sem vendas ainda, mas a lógica precisa estar pronta para quando começar a vender.
-**Onde**: Dashboard tab "📦 Gestão de Anúncios" + notificação no "🏠 Resumo"
+**Onde**: Dashboard tab "Meus Anúncios" + notificação no "Resumo"
 
 ---
 
-### 🟢 FASE 4 — Features Pendentes (Média Prioridade)
+### FASE 4 — Features Pendentes (Média Prioridade)
 
 #### 4.1 Gerador de Prompts de Imagem
 **O que**: A partir da descrição do produto, gerar prompt otimizado para Midjourney / DALL-E.
-**Onde**: Tab "📢 Central de Marketing" (já tem subseção "Gerador de Prompts" — verificar se já implementado).
+**Onde**: Tab "Central de Marketing" (já tem subseção "Gerador de Prompts" — verificar se já implementado).
 **Depende**: LLM ativo (provider configurado no .env).
 
 #### 4.2 Dashboard de Cohort / LTV
@@ -144,13 +144,13 @@ dashboard/
 **Depende**: Dados de vendas com identificação de cliente (hoje não tem — precisa de modelagem nova ou campo `customer_name` em Transaction).
 **Complexidade**: Média. Requer nova coluna/model ou extração dos CSVs da Shopee.
 
-#### 4.3 Dashboard de Concorrência (🔍 Tab)
+#### 4.3 Dashboard de Concorrência (Tab)
 **O que**: Tab de Concorrência está em componente separado (`competitor_view.py`), mas **não aparece na navegação principal**. Integrar no layout principal.
 **Por que**: Usuário não consegue acessar facilmente.
 
 ---
 
-### 🔵 FASE 5 — Integração Shopee Nativa
+### FASE 5 — Integração Shopee Nativa
 
 #### 5.1 API Shopee Open Platform
 **O que**: Conectar via API REST da Shopee (open.shopee.com) para:
@@ -163,26 +163,26 @@ dashboard/
 
 ---
 
-## 📊 Estimativa de Esforço
+## Estimativa de Esforço
 
 | Fase | Frente | Esforço | Impacto | Dependências |
 |------|--------|---------|---------|-------------|
-| 1.1 | Playwright install | 15min | 🟢 Alto | Nenhuma |
-| 1.2 | Migração google.genai | 2h | 🟢 Alto | Nenhuma |
-| 1.3 | Teste de fumaça | 30min | 🟡 Médio | 1.1, 1.2 |
-| 2.1 | Infra de testes | 4h | 🟡 Médio | Nenhuma |
-| 2.2 | Refactor dashboard | 8h | 🟢 Alto | 2.1 (segurança) |
-| 2.3 | Gotchas | 1h | 🟡 Médio | Nenhuma |
-| 3.1 | Bundle UI | 6h | 🟢 Alto | Nenhuma |
-| 3.2 | Alertas reposição | 4h | 🟡 Médio | 3.1 (parcial) |
-| 4.1 | Prompts imagem | 2h | 🟢 Baixo | LLM configurado |
-| 4.2 | Cohort/LTV | 6h | 🔵 Baixo | Modelagem customer |
-| 4.3 | Tab concorrência | 1h | 🟡 Médio | Nenhuma |
-| 5.1 | API Shopee | 16h+ | 🟢 Alto | Chaves Shopee dev |
+| 1.1 | Playwright install | 15min | Alto | Nenhuma |
+| 1.2 | Migração google.genai | 2h | Alto | Nenhuma |
+| 1.3 | Teste de fumaça | 30min | Médio | 1.1, 1.2 |
+| 2.1 | Infra de testes | 4h | Médio | Nenhuma |
+| 2.2 | Refactor dashboard | 8h | Alto | 2.1 (segurança) |
+| 2.3 | Gotchas | 1h | Médio | Nenhuma |
+| 3.1 | Bundle UI | 6h | Alto | Nenhuma |
+| 3.2 | Alertas reposição | 4h | Médio | 3.1 (parcial) |
+| 4.1 | Prompts imagem | 2h | Baixo | LLM configurado |
+| 4.2 | Cohort/LTV | 6h | Baixo | Modelagem customer |
+| 4.3 | Tab concorrência | 1h | Médio | Nenhuma |
+| 5.1 | API Shopee | 16h+ | Alto | Chaves Shopee dev |
 
 ---
 
-## 🚀 Recomendação de Ordem de Execução
+## Recomendação de Ordem de Execução
 
 ```
 Semana 1:  1.1 → 1.2 → 1.3 → 2.3   (estabilização + gotchas)
@@ -194,7 +194,7 @@ Futuro:    5.1                        (integração Shopee nativa)
 
 ---
 
-## 🛑 Riscos Identificados
+## Riscos Identificados
 
 1. **Python 3.11 + pandas 3.0**: pandas 3.0 tem breaking changes. Testar funções de data que usam `date` em transações.
 2. **Plotly 6.8**: API pode ter mudado. Verificar gráficos existentes no dashboard.
@@ -206,14 +206,14 @@ Futuro:    5.1                        (integração Shopee nativa)
 
 ---
 
-## 📌 Próximo Passo Imediato
+## Próximo Passo Imediato
 
 **Qual frente você quer atacar primeiro?**
 
-1. 🔴 **Playwright install** — desbloquear scrapers
-2. 🔴 **Migração google.genai** — resolver deprecation warning
-3. 🟡 **Refactor do dashboard** — quebrar o monólito
-4. 🟡 **Bundle UI** — interface de composição de kits
-5. 🔵 **Outro** — você escolhe
+1. **Playwright install** — desbloquear scrapers
+2. **Migração google.genai** — resolver deprecation warning
+3. **Refactor do dashboard** — quebrar o monólito
+4. **Bundle UI** — interface de composição de kits
+5. **Outro** — você escolhe
 
 > _Este plano é vivo. Atualize conforme avançamos._

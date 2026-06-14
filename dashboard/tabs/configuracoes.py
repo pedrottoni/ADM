@@ -1,5 +1,5 @@
 """
-⚙️ Configurações — Tab de Configuracoes
+:material/settings: Configurações — Tab de Configuracoes
 """
 
 import streamlit as st

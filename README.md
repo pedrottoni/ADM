@@ -1,26 +1,26 @@
-# 🚀 Shopee Growth Quest — ADM
+# Shopee Growth Quest — ADM
 
 Dashboard inteligente para gestão de loja **Shopee** no nicho **saúde / bem-estar / suplementos**.
 
-> 🏪 Loja Nutri Active — polivitamínicos, vitamina K2, suplementos DailyLife
+> Loja Nutri Active — polivitamínicos, vitamina K2, suplementos DailyLife
 
 ---
 
-## ✨ Funcionalidades
+## Funcionalidades
 
 | Tab | Descrição |
 |-----|-----------|
-| 🏠 **Resumo** | KPIs, top vendas, progresso XP, missões, alertas de estoque |
-| 💰 **Financeiro** | Tesouraria (receitas/despesas), registrar vendas, COGS, gráficos |
-| 📢 **Marketing** | Análise de campanhas, gerador de prompts Midjourney |
-| 🤝 **Atendimento** | Gerador de respostas (3 tons), análise de sentimento |
-| 📦 **Meus Anúncios** | CRUD produtos, kits, upload massa, importar/exportar CSV |
-| 🔍 **Concorrência** | Monitor de preços Shopee, Amazon, Enjoei (Tavily + Firecrawl) |
-| ⚙️ **Configurações** | Provider LLM, API keys, toggle IA |
+| **Resumo** | KPIs, top vendas, progresso XP, missões, alertas de estoque |
+| **Financeiro** | Tesouraria (receitas/despesas), registrar vendas, COGS, gráficos |
+| **Marketing** | Análise de campanhas, gerador de prompts Midjourney |
+| **Atendimento** | Gerador de respostas (3 tons), análise de sentimento |
+| **Meus Anúncios** | CRUD produtos, kits, upload massa, importar/exportar CSV |
+| **Concorrência** | Monitor de preços Shopee, Amazon, Enjoei (Tavily + Firecrawl) |
+| **Configurações** | Provider LLM, API keys, toggle IA |
 
 ---
 
-## 🧱 Arquitetura
+## Arquitetura
 
 ```
 dashboard/app.py          ← Entry point (Streamlit)
@@ -56,7 +56,7 @@ scrapers/                  ← Coleta de preços (Tavily + Firecrawl)
 
 ---
 
-## 🚀 Como Rodar
+## Como Rodar
 
 ```bash
 # 1. Instalar dependências
@@ -71,11 +71,11 @@ streamlit run dashboard/app.py
 
 Ou clique duas vezes em `run_app.bat`.
 
-> ⚠️ **DB location:** `database.db` mora na **raiz** do projeto (`C:\Proiectum\Loja\ADM\database.db`), NÃO em `data/`. A `data/` listada abaixo é só pra CSVs e `AGENTS.md`.
+> **DB location:** `database.db` mora na **raiz** do projeto (`C:\Proiectum\Loja\ADM\database.db`), NÃO em `data/`. A `data/` listada abaixo é só pra CSVs e `AGENTS.md`.
 
 ---
 
-## 📊 Estado Atual
+## Estado Atual
 
 | Métrica | Valor |
 |---------|-------|
@@ -88,7 +88,7 @@ Ou clique duas vezes em `run_app.bat`.
 
 ---
 
-## 🧠 Navegação para IA (Hermes / Claude)
+## Navegação para IA (Hermes / Claude)
 
 Este projeto usa **AGENTS.md** em cada pasta para otimizar o contexto de modelos de IA:
 
@@ -96,11 +96,11 @@ Este projeto usa **AGENTS.md** em cada pasta para otimizar o contexto de modelos
 2. **Por módulo**: cada pasta tem seu `AGENTS.md` explicando o que contém e como usar
 3. **CLAUDE.md**: carregado automaticamente pelo Hermes no início da sessão
 
-👉 **Sempre leia o AGENTS.md** da pasta relevante antes de abrir arquivos.
+**Sempre leia o AGENTS.md** da pasta relevante antes de abrir arquivos.
 
 ---
 
-## 📋 Próximos Passos (roadmap resumido)
+## Próximos Passos (roadmap resumido)
 
 - [x] Fase 1: Migração google.genai + smoke test
 - [x] Fase 2: Migração Tavily + Firecrawl (Playwright removido)
@@ -111,7 +111,7 @@ Este projeto usa **AGENTS.md** em cada pasta para otimizar o contexto de modelos
 
 ---
 
-## 🔑 API Keys Necessárias
+## API Keys Necessárias
 
 | Serviço | Onde conseguir |
 |---------|---------------|

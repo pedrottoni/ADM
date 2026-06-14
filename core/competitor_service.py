@@ -11,12 +11,12 @@ from scrapers import SCRAPER_MAP
 MARKETPLACES = ["shopee", "mercadolivre", "amazon", "magalu", "shein", "enjoei"]
 
 MARKETPLACE_LABELS = {
-    "shopee": "🟠 Shopee",
-    "mercadolivre": "🟡 Mercado Livre",
-    "amazon": "🔵 Amazon",
-    "magalu": "🔴 Magalu",
-    "shein": "🩷 Shein",
-    "enjoei": "💜 Enjoei",
+    "shopee": ":material/storefront: Shopee",
+    "mercadolivre": ":material/shopping_cart: Mercado Livre",
+    "amazon": ":material/package_2: Amazon",
+    "magalu": ":material/local_offer: Magalu",
+    "shein": ":material/checkroom: Shein",
+    "enjoei": ":material/recycling: Enjoei",
 }
 
 
@@ -217,13 +217,13 @@ Seja rigoroso: só marque como is_match=true se for claramente o mesmo produto o
         min_price = min(competitor_prices)
 
         if our_price <= min_price:
-            return {"status": "mais_barato", "label": "🏆 Mais barato do mercado!", "color": "green"}
+            return {"status": "mais_barato", "label": ":material/emoji_events: Mais barato do mercado!", "color": "green"}
         elif our_price < avg_price:
-            return {"status": "abaixo_media", "label": "✅ Preço abaixo da média", "color": "green"}
+            return {"status": "abaixo_media", "label": ":material/check_circle: Preço abaixo da média", "color": "green"}
         elif our_price <= avg_price * 1.1:
-            return {"status": "na_media", "label": "⚖️ Preço na média", "color": "orange"}
+            return {"status": "na_media", "label": ":material/scale: Preço na média", "color": "orange"}
         else:
-            return {"status": "acima_media", "label": "⚠️ Preço acima da média", "color": "red"}
+            return {"status": "acima_media", "label": ":material/warning_amber: Preço acima da média", "color": "red"}
 
     def clear_listings(self, product_id: int):
         session = next(get_session())

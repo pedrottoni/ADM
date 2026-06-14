@@ -1,5 +1,5 @@
 """
-💰 Financeiro — Tab de Financeiro
+:material/payments: Financeiro — Tab de Financeiro
 """
 
 import streamlit as st
@@ -62,7 +62,7 @@ def render(user, agents):
     margem_real = (lucro_real / fat_bruto * 100) if fat_bruto > 0 else 0
 
     sub_tab_dash, sub_tab_venda, sub_tab_gasto, sub_tab_upload = st.tabs([
-        "📊 Resumo Geral", "💰 Registrar Venda", "💸 Despesas", "📂 Importar Dados"
+        ":material/analytics: Resumo Geral", ":material/payments: Registrar Venda", ":material/receipt_long: Despesas", ":material/folder_open: Importar Dados"
     ])
 
     with sub_tab_dash:
@@ -122,7 +122,7 @@ def render(user, agents):
                             st.markdown(f"""
                             <div class="chart-card-header">
                                 <div class="chart-card-header-left">
-                                    <span class="chart-card-title">📈 Evolução Financeira</span>
+                                    <span class="chart-card-title"><span class="material-symbols-rounded">trending_up</span> Evolução Financeira</span>
                                     <div class="chart-card-value-row">
                                         <span class="chart-card-value" style="font-size:1.5rem">R$ {income_total:,.2f}</span>
                                         <span class="chart-card-delta">▲ {net_margem:.1f}%</span>
@@ -201,7 +201,7 @@ def render(user, agents):
                                 <div class="chart-card-header-left">
                                     <div style="display:flex;justify-content:space-between;align-items:flex-start;width:100%">
                                         <div>
-                                            <div class="chart-card-title">📊 Lucro Líquido</div>
+                                            <div class="chart-card-title"><span class="material-symbols-rounded">bar_chart</span> Lucro Líquido</div>
                                             <div class="chart-card-value-row">
                                                 <span class="chart-card-value" style="font-size:1.25rem">R$ {total_net:,.2f}</span>
                                                 <span class="chart-card-delta" style="background:{'#166534' if net_pos else '#7f1d1d'};color:{'#86efac' if net_pos else '#fca5a5'}">
@@ -240,7 +240,7 @@ def render(user, agents):
                                     <div class="chart-card-header-left">
                                         <div style="display:flex;justify-content:space-between;align-items:flex-start;width:100%">
                                             <div>
-                                                <div class="chart-card-title">💸 Despesas por Categoria</div>
+                                                <div class="chart-card-title"><span class="material-symbols-rounded">receipt_long</span> Despesas por Categoria</div>
                                                 <div class="chart-card-value-row">
                                                     <span class="chart-card-value" style="font-size:1.25rem">R$ {total_exp:,.2f}</span>
                                                 </div>
@@ -279,7 +279,7 @@ def render(user, agents):
                         detail = df_tmp[df_tmp['Período'] == periodo_clicado]
                         if not detail.empty:
                             st.markdown("---")
-                            st.markdown(f'<span class="chart-card-title">📋 Detalhamento: {periodo_clicado}</span>', unsafe_allow_html=True)
+                            st.markdown(f'<span class="chart-card-title"><span class="material-symbols-rounded">content_paste</span> Detalhamento: {periodo_clicado}</span>', unsafe_allow_html=True)
                             det_fat = detail[detail['Tipo'] == 'INCOME']['Valor'].sum()
                             det_sai = detail[detail['Tipo'] == 'EXPENSE']['Valor'].sum()
                             det_income_ids = set(detail[detail['Tipo'] == 'INCOME']['ID'].tolist())
@@ -305,12 +305,12 @@ def render(user, agents):
                                                   delta=f"{det_margem:.1f}%")
                             income_detail = detail[detail['Tipo'] == 'INCOME']
                             if not income_detail.empty:
-                                with st.expander("📦 Produtos Vendidos", expanded=True):
+                                with st.expander(":material/inventory_2: Produtos Vendidos", expanded=True):
                                     period_start = income_detail['Date'].min().to_pydatetime()
                                     period_end = income_detail['Date'].max().to_pydatetime()
                                     col_tv, col_tp = st.columns(2)
                                     with col_tv:
-                                        st.markdown("**🏆 Top Vendas**")
+                                        st.markdown("**:material/emoji_events: Top Vendas**")
                                         top_prods = finance_agent.get_top_products(
                                             user.id, limit=10,
                                             start_date=period_start, end_date=period_end
@@ -322,7 +322,7 @@ def render(user, agents):
                                         else:
                                             st.info("Nenhuma venda no período.")
                                     with col_tp:
-                                        st.markdown("**🏆 Top Produtos**")
+                                        st.markdown("**:material/emoji_events: Top Produtos**")
                                         top_potes = finance_agent.get_top_products_by_potes(
                                             user.id, limit=10,
                                             start_date=period_start, end_date=period_end
@@ -333,14 +333,14 @@ def render(user, agents):
                                                 st.markdown(f"**{i}.** {title} — **:green[Vendidos: {p['total_potes']} un.]**")
                                         else:
                                             st.info("Nenhum produto no período.")
-                            with st.expander("📄 Todas as Transações", expanded=False):
+                            with st.expander(":material/description: Todas as Transações", expanded=False):
                                 st.dataframe(
                                     detail[['Data', 'Desc', 'Valor', 'Tipo', 'Categoria']].sort_values('Data'),
                                     hide_index=True, use_container_width=True
                                 )
         else:
             st.info("Nenhuma transação financeira encontrada.")
-        with st.expander("📝 Gerenciar Histórico de Transações"):
+        with st.expander(":material/edit_note: Gerenciar Histórico de Transações"):
             all_transactions_with_id = [{"ID": t.id, "Data": t.date, "Desc": t.description, "Valor": t.amount, "Tipo": t.type, "Categoria": t.category} for t in stats["raw_data"]]
             df_edit = pd.DataFrame(all_transactions_with_id).sort_values(by="Data", ascending=False)
             edited_df = st.data_editor(
@@ -371,7 +371,7 @@ def render(user, agents):
                         if updates: finance_agent.update_transaction(int(txn_id), updates)
                 st.success("Financeiro atualizado com sucesso!"); st.rerun()
         st.divider()
-        if st.button("🪄 Gerar Insights de Negócio (IA)", use_container_width=True):
+        if st.button("Gerar Insights de Negócio (IA)", icon=":material/auto_awesome:", use_container_width=True):
             context_insights = {
                 "fat_bruto": fat_bruto,
                 "saidas": saidas,
@@ -382,23 +382,23 @@ def render(user, agents):
             with st.spinner("Analisando padrões financeiros..."):
                 report = finance_agent.generate_deep_analysis(user.id, context_insights)
                 st.markdown(report)
-            with st.expander("⛔ Zona de Perigo"):
+            with st.expander(":material/warning: Zona de Perigo"):
                 st.warning("Estas ações NÃO podem ser desfeitas.")
                 col_z1, col_z2 = st.columns(2)
                 with col_z1:
-                    with st.popover("🗑️ Zerar Vendas/Histórico", use_container_width=True):
+                    with st.popover(":material/delete: Zerar Vendas/Histórico", use_container_width=True):
                         st.error("Tem certeza? Todo o histórico financeiro será perdido.")
                         if st.button("Sim, zerar tudo", type="primary", key="confirm_clear_tx"):
                             res = finance_agent.clear_all_transactions(user.id)
                             if res["success"]: st.toast(res["message"]); st.rerun()
                 with col_z2:
-                    with st.popover("🔄 Resetar Estoque (600 un.)", use_container_width=True):
+                    with st.popover(":material/refresh: Resetar Estoque (600 un.)", use_container_width=True):
                         st.error("Tem certeza? Todo o estoque será resetado para 600 unidades.")
                         if st.button("Sim, resetar", type="primary", key="confirm_reset_stock"):
                             res = finance_agent.reset_inventory(user.id)
                             if res["success"]: st.toast(res["message"]); st.rerun()
     with sub_tab_venda:
-        st.subheader("💰 Registrar Venda Manual")
+        st.markdown("#### :material/payments: Registrar Venda Manual")
         st.info("Utilize este formulário para registrar vendas que não foram importadas automaticamente. O estoque será abatido proporcionalmente.")
         # Produtos disponíveis
         if products_list:
@@ -432,7 +432,7 @@ def render(user, agents):
         else:
             st.warning("Nenhum anúncio encontrado. Cadastre seus anúncios na aba 'Gestão de Anúncios'.")
     with sub_tab_gasto:
-        st.subheader("💸 Registro de Despesas")
+        st.markdown("#### :material/receipt_long: Registro de Despesas")
         with st.form("expense_form_new"):
             d_date = st.date_input("Data da Despesa")
             d_desc = st.text_input("Descrição", placeholder="Ex: Google Ads, Aluguel, Embalagens")
@@ -448,7 +448,7 @@ def render(user, agents):
                     st.success("Gasto registrado com sucesso!"); st.rerun()
                 else: st.error(res["message"])
     with sub_tab_upload:
-        st.subheader("📂 Importar Planilha de Vendas")
+        st.markdown("#### :material/folder_open: Importar Planilha de Vendas")
         st.markdown("Suba o arquivo XML/XLSX da Shopee ou um CSV próprio. Nossa IA irá processar os dados e vincular aos anúncios.")
         uploaded_file = st.file_uploader("Arraste o arquivo aqui", type=["csv", "xlsx"], key="income_upload_new")
         if uploaded_file and "upload_preview" not in st.session_state:
@@ -476,7 +476,7 @@ def render(user, agents):
     # Resolução de Itens não Encontrados (Persistent ao final da aba Financeiro)
     if "unmatched_products" in st.session_state and st.session_state["unmatched_products"]:
         st.divider()
-        st.subheader("⚠️ Vendas não Vinculadas")
+        st.markdown("#### :material/warning: Vendas não Vinculadas")
         st.caption("Os itens abaixo foram registrados no financeiro, mas não encontramos anúncios correspondentes para abater o estoque.")
         unmatched = st.session_state["unmatched_products"]
         for idx, item in enumerate(unmatched):

@@ -1,5 +1,5 @@
 """
-🤝 Atendimento — Tab de Atendimento
+:material/support_agent: Atendimento — Tab de Atendimento
 """
 
 import streamlit as st
@@ -14,14 +14,14 @@ def render(user, agents):
     ads_agent = agents["ads_agent"]
     customer_agent = agents["customer_agent"]
 
-    col_c1, col_c2 = st.tabs(["💬 Gerador de Respostas", "⭐ Análise de Reviews"])
+    col_c1, col_c2 = st.tabs([":material/chat: Gerador de Respostas", ":material/star: Análise de Reviews"])
 
     with col_c1:
         st.subheader("Responder Cliente")
         msg = st.text_area("Mensagem do Cliente", placeholder="Ex: O produto chegou quebrado e quero meu dinheiro de volta!", height=120)
         tone = st.select_slider("Tom da Resposta", options=["Formal", "Empático", "Descontraído"], value="Empático")
 
-        if st.button("Gerar Resposta ✍️"):
+        if st.button("Gerar Resposta", icon=":material/edit:"):
             if msg:
                 with st.spinner("Escrevendo..."):
                     reply = customer_agent.generate_response(msg, tone)
@@ -35,10 +35,10 @@ def render(user, agents):
             st.text_area("Sugestão de Resposta:", value=reply, height=150, key="reply_area")
             rcol1, rcol2 = st.columns([1, 4])
             with rcol1:
-                if st.button("📋 Copiar Resposta", key="copy_reply"):
-                    st.toast("Copiado! (Ctrl+C no campo acima)", icon="📋")
+                if st.button("Copiar Resposta", icon=":material/content_paste:", key="copy_reply"):
+                    st.toast("Copiado! (Ctrl+C no campo acima)", icon=":material/content_paste:")
             with rcol2:
-                if st.button("✏️ Refinar", key="refine_reply"):
+                if st.button("Refinar", icon=":material/edit:", key="refine_reply"):
                     st.session_state.generated_reply = customer_agent.generate_response(
                         f"{msg}\n\n[Minha resposta anterior foi: '{reply}'. Refine-a para ficar ainda melhor.]",
                         tone
@@ -53,7 +53,7 @@ def render(user, agents):
             placeholder="Ex: Amei o produto! Chegou super rápido.\nDemorou muito para chegar, mas veio bem embalado.\nQualidade excelente, recomendo!",
             help="Cole as avaliações livres. Separe cada uma por linha ou parágrafo.")
 
-        if st.button("Analisar Sentimento 🧠"):
+        if st.button("Analisar Sentimento", icon=":material/psychology:"):
             if reviews_input:
                 # Split by newlines, filter empties — works for both one-per-line and free text
                 reviews_list = [r.strip() for r in reviews_input.replace('\r\n', '\n').split('\n') if r.strip()]
@@ -75,6 +75,6 @@ def render(user, agents):
             """
             st.markdown("**Resultado da Análise:**")
             st.markdown(analysis_html, unsafe_allow_html=True)
-            if st.button("📋 Copiar Análise", key="copy_sentiment"):
-                st.toast("Análise copiada! (Ctrl+C no campo acima)", icon="📋")
+            if st.button("Copiar Análise", icon=":material/content_paste:", key="copy_sentiment"):
+                st.toast("Análise copiada! (Ctrl+C no campo acima)", icon=":material/content_paste:")
 

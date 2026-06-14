@@ -25,7 +25,7 @@ from dashboard.tabs import TAB_RENDERERS
 # ── Page Config ─────────────────────────────────────────────────────
 st.set_page_config(
     page_title=Config.APP_NAME,
-    page_icon="🚀",
+    page_icon=":material/rocket:",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -63,14 +63,18 @@ if "db_initialized" not in st.session_state:
 
 
 # ── Navigation Config ───────────────────────────────────────────────
+# O sidebar usa st.button em loop com icon=":material/x:" (nativo
+# Streamlit 1.58+). Estava num st.radio antes, mas os labels do radio
+# não suportam Material icons; botões dão controle total.
+
 TAB_LABELS = [
-    "🏠  Resumo",
-    "💰  Financeiro",
-    "📢  Central de Marketing",
-    "🤝  Atendimento",
-    "📦  Meus Anúncios",
-    "🔍  Concorrência",
-    "⚙️  Configurações",
+    "Resumo",
+    "Financeiro",
+    "Central de Marketing",
+    "Atendimento",
+    "Meus Anúncios",
+    "Concorrência",
+    "Configurações",
 ]
 TAB_KEYS = [
     "resumo", "financeiro", "marketing", "atendimento",
@@ -89,7 +93,7 @@ def render_sidebar(user):
         # ── Brand / Logo ──
         st.markdown(
             '<div class="sidebar-brand">'
-            '  <span class="brand-icon">🚀</span>'
+            '  <span class="brand-icon"><span class="material-symbols-rounded">rocket</span></span>'
             '  <span class="brand-name">ADM</span>'
             '</div>',
             unsafe_allow_html=True,
@@ -104,7 +108,7 @@ def render_sidebar(user):
         # ── User Profile ──
         st.markdown(
             f'<div class="user-profile">'
-            f'  <div class="user-avatar">👤</div>'
+            f'  <div class="user-avatar"><span class="material-symbols-rounded">person</span></div>'
             f'  <div class="user-info">'
             f'    <div class="user-name">{user.username}</div>'
             f'    <div class="user-level">Nível {user.level}</div>'
@@ -120,7 +124,7 @@ def render_sidebar(user):
         # Achievements
         st.markdown(
             '<div class="sidebar-achievements">'
-            '  <span class="achievement-badge">🏆 Fundador</span>'
+            '<span class="achievement-badge"><span class="material-symbols-rounded">emoji_events</span> Fundador</span>'
             '</div>',
             unsafe_allow_html=True,
         )
@@ -128,15 +132,33 @@ def render_sidebar(user):
         st.divider()
         st.markdown("###  Navegação")
 
-        # ── Navigation Radio ──
-        current_idx = TAB_KEYS.index(st.session_state.active_tab)
-        selected = st.radio(
-            "nav",
-            options=TAB_LABELS,
-            index=current_idx,
-            key="nav_radio",
-            label_visibility="collapsed",
-        )
+        # ── Navigation (st.button com icon=:material/: nativo, 1.58+) ──
+        # Streamlit 1.58 aceita icon=":material/icon_name:" (Material
+        # Symbols Rounded - 4250 ícones disponíveis). Não precisa de
+        # Font Awesome nem de hack com HTML/CSS.
+        _NAV_ICONS = {
+            "resumo":        ":material/home:",
+            "financeiro":    ":material/payments:",
+            "marketing":     ":material/campaign:",
+            "atendimento":   ":material/support_agent:",
+            "anuncios":      ":material/inventory_2:",
+            "concorrencia":  ":material/search:",
+            "configuracoes": ":material/settings:",
+        }
+        for _key in TAB_KEYS:
+            _active = st.session_state.active_tab == _key
+            _label = TAB_LABELS[TAB_KEYS.index(_key)]
+            if st.button(
+                _label,
+                key=f"nav_{_key}",
+                icon=_NAV_ICONS.get(_key, ":material/help:"),
+                use_container_width=True,
+                type="primary" if _active else "secondary",
+            ) and not _active:
+                st.session_state.active_tab = _key
+                st.rerun()
+        # Compat: 'selected' usado pelo resto do main()
+        selected = TAB_LABELS[TAB_KEYS.index(st.session_state.active_tab)]
 
         # Update active tab if changed
         new_idx = TAB_LABELS.index(selected)
@@ -148,8 +170,11 @@ def render_sidebar(user):
         st.divider()
 
         # ── LLM Toggle (moved from header) ──
+        # ── LLM Toggle (ícone FA no label é escapado, mas o chip "IA Ativa"
+        #     pode ser estilizado via format_func se a versão do Streamlit
+        #     suportar. Por enquanto mantemos label simples) ──
         llm_on = st.toggle(
-            "🤖  IA Ativa",
+            "IA Ativa",
             value=llm_client.enabled,
             help="Ativar ou desativar a conexão com a IA",
         )
@@ -190,9 +215,22 @@ def main():
     # ── Sidebar ──
     render_sidebar(user)
 
-    # ── Main Header ──
+    # ── Main Header ──────────────────────────────────────────────────
+    # Header da tab ativa. Streamlit renderiza Material Symbols nativos
+    # em st.markdown via shortcode (formato :material/snake_case:),
+    # nativo no 1.58+.
+    _ICON_FOR_KEY = {
+        "resumo":        "home",
+        "financeiro":    "payments",
+        "marketing":     "campaign",
+        "atendimento":   "support_agent",
+        "anuncios":      "inventory_2",
+        "concorrencia":  "search",
+        "configuracoes": "settings",
+    }
     active_label = TAB_LABELS[TAB_KEYS.index(st.session_state.active_tab)]
-    st.markdown(f"## {active_label}")
+    _hdr_icon = _ICON_FOR_KEY.get(st.session_state.active_tab, "help")
+    st.markdown(f"## :material/{_hdr_icon}: {active_label}")
     st.markdown(
         '<p class="page-subtitle">'
         'Measure your advertising ROI and report website traffic.'

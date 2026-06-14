@@ -1,23 +1,29 @@
-# 🔲 Dashboard Components — Componentes Reutilizáveis
+# Dashboard Components — Reusable UI
 
-## Visão Geral
-Componentes de UI que podem ser usados por múltiplas tabs ou páginas.
+## Overview
+UI components that can be used by multiple tabs or pages.
 
-## Arquivos
+## Files
 
-|| Arquivo | Propósito |
-|---------|-----------|
-| `competitor_view.py` | `render_competitor_page(user_id)` — monitor de preços concorrência com scrapers Shopee/Amazon/Enjoei/Mercado Livre/Magalu/Shein (6 marketplaces via `SCRAPER_MAP`) |
-| `settings_view.py` | `render_settings_page()` — configurações de LLM provider, API keys, toggle IA |
-| `metric_card.py` | `metric_card(label, value, delta=None)` — card KPI custom via `st.html()` (bypassa CSS-in-JS interno do Streamlit 1.56). **Comportamento delta:** aceita string com emoji 🟢/🟡/🔴 no prefixo — componente detecta automaticamente e renderiza seta ▲/▼ + cor verde/vermelha. **Regra do Pedro**: delta é puramente gráfico (só emoji + seta + número + %), zero texto. |
+| File | Purpose |
+|------|---------|
+| `competitor_view.py` | `render_competitor_page(user_id)` — price monitor with scrapers for Shopee/Amazon/Enjoei/Mercado Livre/Magalu/Shein (6 marketplaces via `SCRAPER_MAP`) |
+| `settings_view.py` | `render_settings_page()` — LLM provider config, API keys, AI toggle |
+| `metric_card.py` | `metric_card(label, value, delta=None)` — custom KPI card via `st.html()` (bypasses Streamlit 1.56 CSS-in-JS). **Delta behavior:** accepts string with emoji prefix (🟢/🟡/🔴) — component auto-detects and renders arrow ▲/▼ + green/red color |
 
-## Como Usar
+## How to Use
 ```python
 from dashboard.components.competitor_view import render_competitor_page
 render_competitor_page(user.id)
 ```
 
-## Dependências
-- `core/competitor_service.py` — acesso aos scrapers
-- `core/llm_client.py` — toggle e configuração
-- `scrapers/` — coleta de dados de concorrência
+## Technical Quirks
+
+- **`metric_card.py` delta convention ("Regra do Pedro")**: Delta should be purely graphical (emoji + arrow + number + %), zero text. This is a **caller convention**, not enforced by code — the component renders whatever string is passed.
+- **`settings_view.py` bug**: Calls `llm_client.setup_provider()` but method is actually `_setup_provider()` (private). Will raise `AttributeError` at runtime.
+- Uses `st.html()` to bypass Streamlit's internal CSS-in-JS (Emotion)
+
+## Dependencies
+- `core/competitor_service.py` — scraper access
+- `core/llm_client.py` — toggle and configuration
+- `scrapers/` — data collection

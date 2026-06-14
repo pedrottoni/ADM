@@ -1,4 +1,4 @@
-# 🎨 ADM Dashdark X — Design System
+# ADM Dashdark X — Design System
 
 > Tema ativo no dashboard ADM (Shopee Growth Quest). Inspirado no template Dashdark X — dark navy com acento indigo e sidebar como hub central de navegação.
 >
@@ -139,7 +139,7 @@ section[data-testid="stSidebar"] label[data-baseweb="toggle"] /* IA Ativa toggle
 
 ### Containers (chart-card, sub-block)
 
-**⚠️ CRÍTICO: NÃO use `<div>` open/close entre `st.markdown` / `st.plotly_chart`** — quebra ancoragem do DOM. Use o **pattern de marker CSS**:
+**CRÍTICO: NÃO use `<div>` open/close entre `st.markdown` / `st.plotly_chart`** — quebra ancoragem do DOM. Use o **pattern de marker CSS**:
 
 ```python
 with st.container():
@@ -184,9 +184,9 @@ São renderizados via `::before` / `::after` posicionados absolutamente (não us
 
 ### Metric Cards (KPIs)
 
-**⚠️ Streamlit 1.56 renderiza `st.metric()` via React + Emotion CSS-in-JS — sem `data-testid`.**
+**Streamlit 1.56 renderiza `st.metric()` via React + Emotion CSS-in-JS — sem `data-testid`.**
 
-**✅ Solução atual:** componente custom em `dashboard/components/metric_card.py` que usa `st.html()` (não-iframe, bypassa Emotion). O componente recebe `label`, `value`, `delta`, e **detecta** automaticamente emoji `🟢/🟡/🔴` no delta pra setar seta ▲/▼ e cor.
+**Solução atual:** componente custom em `dashboard/components/metric_card.py` que usa `st.html()` (não-iframe, bypassa Emotion). O componente recebe `label`, `value`, `delta`, e **detecta** automaticamente `:material/` icon no delta pra setar seta ▲/▼ e cor.
 
 **Hover** é global no CSS (não-inline):
 ```css
@@ -197,13 +197,13 @@ São renderizados via `::before` / `::after` posicionados absolutamente (não us
 ```
 
 **Regra dura pro delta** (Pedro, business profile): **só gráfico, nunca texto**.
-- ✅ Permitido: `▲/▼`, emoji `🟢/🟡/🔴`, números, `%`
-- ❌ Removido: `"Margem"`, `"Saudável"`, `"Atenção"`, `"Crítico"`, `"Excelente"`, `"Prejuízo"`
+- Permitido: `▲/▼`, `:material/` icon, números, `%`
+- Removido: `"Margem"`, `"Saudável"`, `"Atenção"`, `"Crítico"`, `"Excelente"`, `"Prejuízo"`
 
 Exemplos válidos:
 ```python
-metric_card("Margem", "23.4%", delta="🟢 25.0%")      # verde ▲
-metric_card("ROI", "1.8x", delta="🔴 -5.0%")           # vermelho ▼
+metric_card("Margem", "23.4%", delta=":material/check_circle: 25.0%")      # verde ▲
+metric_card("ROI", "1.8x", delta=":material/cancel: -5.0%")           # vermelho ▼
 metric_card("Vendas", "R$ 10.4K", delta="▲ 12.3%")    # verde ▲ semântica
 ```
 
@@ -339,15 +339,15 @@ Border-radius `--dx-radius-s`, padding `12px 16px`, font-size `0.9rem`.
 
 ## 10. Anti-padrões (Don'ts)
 
-- ❌ **Não duplique valores de cor** — sempre `var(--dx-*)`, nunca hex inline
-- ❌ **Não use `st.metric()`** — vai renderizar com Emotion cache e quebrar a estilização
-- ❌ **Não use `st.html(fig.to_html())` para Plotly** — `st.html()` não executa `<script>`, chart fica em branco
-- ❌ **Não use `<div>` open + `st.plotly_chart()` + `</div>` em mais de um `st.markdown`** — quebra ancoragem do DOM
-- ❌ **Não invente marker classes** sem atualizar o CSS correspondente — markers órfãos não fazem nada
-- ❌ **Não use `data-testid` em metric** — não existe no Streamlit 1.56
-- ❌ **Não misture accent colors** em uma mesma área — só `--dx-indigo` como primária
-- ❌ **Não coloque texto no `delta` da metric_card** — só emoji + seta + número + %
-- ❌ **Não use `:has()` fora dos contextos documentados** — funciona, mas vira débito técnico
+- **No:** Não duplique valores de cor — sempre `var(--dx-*)`, nunca hex inline
+- **No:** Não use `st.metric()` — vai renderizar com Emotion cache e quebrar a estilização
+- **No:** Não use `st.html(fig.to_html())` para Plotly — `st.html()` não executa `<script>`, chart fica em branco
+- **No:** Não use `<div>` open + `st.plotly_chart()` + `</div>` em mais de um `st.markdown` — quebra ancoragem do DOM
+- **No:** Não invente marker classes sem atualizar o CSS correspondente — markers órfãos não fazem nada
+- **No:** Não use `data-testid` em metric — não existe no Streamlit 1.56
+- **No:** Não misture accent colors em uma mesma área — só `--dx-indigo` como primária
+- **No:** Não coloque texto no `delta` da metric_card — só :material/ icon + seta + número + %
+- **No:** Não use `:has()` fora dos contextos documentados — funciona, mas vira débito técnico
 
 ---
 

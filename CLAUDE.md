@@ -1,51 +1,62 @@
-# 🚀 ADM — Shopee Growth Quest
+# ADM — Shopee Growth Quest
 
-## Project Context
-Dashboard Streamlit for managing a Shopee store (health/supplements niche — Nutri Active, DailyLife). Monolithic app refactored into module-per-tab architecture.
+Streamlit dashboard for managing a Shopee health/supplements store (Nutri Active, DailyLife). Monolithic app with module-per-tab architecture.
 
-## Tech Stack
-- **Python 3.11** + Streamlit + SQLModel + SQLite
-- **LLM:** google.genai (Gemini) + OpenAI-compatible (OpenRouter, NVIDIA)
-- **Scraping:** Tavily Search API + Firecrawl Crawl API (NO Playwright)
-- **Host:** Windows (git-bash)
+**Stack:** Python 3.11 + Streamlit + SQLModel + SQLite + Google Gemini / OpenRouter + Tavily + Firecrawl
 
-## Navigation (read AGENTS.md first, NOT the raw files)
-```
-Root AGENTS.md  →  maps all modules
-agents/AGENTS.md        →  AI agents
-core/AGENTS.md          →  core services
-core/database/AGENTS.md →  DB models & engine
-dashboard/AGENTS.md     →  Streamlit UI
-dashboard/tabs/AGENTS.md →  per-tab modules
-scrapers/AGENTS.md      →  price monitoring
-docs/AGENTS.md          →  planning docs
-```
+## Navigation
+
+Read the relevant `AGENTS.md` before opening source files. Each module has its own.
+
+| Module | AGENTS.md |
+|--------|-----------|
+| Root | Navigation map, critical rules, quirks |
+| `agents/` | AI agents (Product, Finance, Ads, Customer) |
+| `core/` | Config, LLMClient, CompetitorService, SalesService |
+| `core/database/` | 8 SQLModel tables, engine, migrations |
+| `core/gamification/` | XP, levels, missions |
+| `dashboard/` | Streamlit app entry point |
+| `dashboard/tabs/` | 7 tab modules |
+| `dashboard/components/` | Reusable UI components |
+| `scrapers/` | Shopee, Amazon, Enjoei, MercadoLivre, Magalu, Shein |
+| `docs/` | Project plan and status |
 
 ## Key Files
+
 - `dashboard/app.py` — Streamlit entry point
-- `dashboard/tabs/anuncios.py` — Product management (the biggest module)
-- `core/llm_client.py` — LLM multi-provider with fallback
+- `dashboard/tabs/anuncios.py` — Product management (largest module)
+- `core/llm_client.py` — LLM multi-provider with Gemini fallback
+- `core/database/engine.py` — DB initialization (CWD-relative path!)
 - `scrapers/shopee_scraper.py` — Shopee price fetching (Tavily + Firecrawl)
 
 ## Critical Rules
-1. **Read the AGENTS.md** of the relevant folder BEFORE opening source files
-2. **NO Playwright/Chromium** — removed permanently
-3. **NO committing** `.env` or `database.db`
-4. **Component imports** (`dashboard/components/`) stay LOCAL inside functions
-5. **Scraper prices can be zero** — validate before using
-6. **DB is SQLite** at `<project-root>/database.db` (NOT `data/database.db` — see "Entry Point & DB Location" below)
 
-## ⚠️ Entry Point & DB Location (⚠️ read this!)
+1. **DB location**: `database.db` lives at **project root**, NOT in `data/`. The `engine.py` uses a relative path, so **always run from project root**.
+2. **Never commit** `.env` or `database.db` (gitignored).
+3. **Component imports** must be **local** (inside the function), not at module top.
+4. **Scraper prices can be zero** — always validate before using.
+5. **`select()` import**: Every file using `session.exec(select(...))` must `from sqlmodel import select`.
+6. **No Playwright** — removed permanently.
 
-⚠️ **DB path está documentado errado em alguns lugares do projeto.** Aqui está a realidade:
+## Running
 
-- **DB está em:** `C:\Proiectum\Loja\ADM\database.db` (na **raiz** do projeto)
-- **NÃO está em** `data/database.db` (pasta `data/` é só pra docs AGENTS.md + mocks .csv)
-- O `data/` listado em `AGENTS.md` raiz é só o `AGENTS.md` "data/" — sem o DB
+```bash
+# From project root (required for DB path)
+streamlit run dashboard/app.py
+```
 
-A `core/database/engine.py` cria o DB com path **relativo ao CWD** (`sqlite_file_name = "database.db"`). Por convenção, **sempre rode o app de dentro da raiz do projeto** — `streamlit run dashboard/app.py` (cwd = raiz). `run_app.bat` já garante isso. Se rodar de outra pasta, vai criar DB fantasma em outro lugar.
+Or double-click `run_app.bat` (Windows).
 
-Use sempre imports absolutos a partir da raiz:
+## DB Location (common mistake)
+
+The DB path is documented incorrectly in some places. Reality:
+
+- **DB is at:** project root (`database.db`)
+- **NOT at:** `data/database.db` (that folder is only for CSVs and AGENTS.md)
+- `engine.py` creates DB with a **CWD-relative path** — launching from the wrong directory creates a phantom empty DB
+
+## Import Pattern
+
 ```python
 from core.database.engine import get_session
 from core.database.models import Product
@@ -54,3 +65,12 @@ from sqlmodel import select
 session = next(get_session())
 products = session.exec(select(Product)).all()
 ```
+
+## Technical Quirks
+
+- **Module-level side effects**: Importing `core/config.py` reads `.env`, `engine.py` creates the SQLAlchemy engine, `llm_client.py` instantiates the LLM client — all before `st.set_page_config()`.
+- **No `__init__.py`** in most packages — works due to Streamlit's CWD-based path resolution but fragile.
+- **Session pattern**: `session = next(get_session())` — some callers don't close explicitly.
+- **LLM fallback**: When primary provider fails and `GOOGLE_API_KEY` exists, automatically falls back to Gemini.
+- **`settings_view.py` bug**: Calls `llm_client.setup_provider()` but method is actually `_setup_provider()` — will raise `AttributeError` at runtime.
+- **Duplicate `MARKETPLACE_LABELS`**: Defined in both `core/competitor_service.py` (with emojis) and `scrapers/__init__.py` (without).

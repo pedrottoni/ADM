@@ -1,20 +1,20 @@
-# 🎮 Gamification — Engine de Progressão
+# Gamification — Progression Engine
 
-## Visão Geral
-Sistema de gamificação: XP, níveis e missões para engajar o uso do dashboard.
+## Overview
+Gamification system: XP, levels, and missions to drive dashboard engagement.
 
-## Arquivos
+## Files
 
-| Arquivo | Propósito |
-|---------|-----------|
-| `engine.py` | `GamificationEngine`: `calculate_level(xp)`, `xp_for_next_level(current_level)`, `add_xp(user, amount, session)` (faz level up automático). **NÃO tem `complete_mission()` nem `check_level_up()` expostos** — esses nomes na doc antiga estavam errados. |
+| File | Purpose |
+|------|---------|
+| `engine.py` | `GamificationEngine`: `calculate_level(xp)`, `xp_for_next_level(current_level)`, `add_xp(user, amount, session)` (auto level-up). **No `complete_mission()` or `check_level_up()` methods** — those names in old docs were wrong. |
 
-## Regras de Level (FÓRMULA REAL — doc antigo estava errado)
+## Level Formula (REAL — old docs had it wrong)
 
-⚠️ **Cuidado:** a fórmula é **quadrática**, não linear. Doc antigo dizia `user.level * 100` — errado.
+**WARNING:** The formula is **quadratic**, not linear. Old docs said `user.level * 100` — wrong.
 
 ```python
-# Em core/gamification/engine.py — o que está VIVO no código:
+# In core/gamification/engine.py — what's LIVE in code:
 
 @staticmethod
 def calculate_level(xp: int) -> int:
@@ -23,14 +23,14 @@ def calculate_level(xp: int) -> int:
 
 @staticmethod
 def xp_for_next_level(current_level: int) -> int:
-    # XP necessário pro próximo nível: current_level^2 * 100
+    # XP needed for next level: current_level^2 * 100
     return (current_level ** 2) * 100
 ```
 
-Tabela de referência:
+Reference table:
 
-| XP acumulado | Level |
-|------|------|
+| XP accumulated | Level |
+|---------------|-------|
 | 0 | 1 |
 | 100 | 2 |
 | 400 | 3 |
@@ -38,23 +38,23 @@ Tabela de referência:
 | 1600 | 5 |
 | n² × 100 | n+1 |
 
-XP necesario para subir do `level N` para `N+1`: `(N² × 100) + ((N+1)² × 100) - (N² × 100)` simplificando: `(N+1)² × 100 - N² × 100 = (2N+1) × 100`.
+XP to level up from `level N` to `N+1`: `(2N+1) × 100`
 
-## Como Usar
+## How to Use
 ```python
 from core.gamification.engine import GamificationEngine
 
-# API existente:
+# API:
 #   GamificationEngine.calculate_level(xp)  -> int
 #   GamificationEngine.xp_for_next_level(current_level) -> int
-#   GamificationEngine.add_xp(user, amount, session) -> User  (faz level up automático se aplicável)
-# ⚠️ NÃO há método complete_mission() — vem direto via SQLModel (Mission.is_completed=True + add_xp)
+#   GamificationEngine.add_xp(user, amount, session) -> User  (auto level-up)
+# No complete_mission() — use SQLModel directly (Mission.is_completed=True + add_xp)
 
 level = GamificationEngine.calculate_level(user.xp)
 next_xp = GamificationEngine.xp_for_next_level(level)
-GamificationEngine.add_xp(user, 50, session)   # +50 XP, checa level up automático
+GamificationEngine.add_xp(user, 50, session)   # +50 XP, auto level-up if applicable
 ```
 
-## Dependências
+## Dependencies
 - `core/database/models.py` — User, Mission
-- chamado por `agents/` e pelo dashboard
+- Called by `agents/` and dashboard

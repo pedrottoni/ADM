@@ -1,17 +1,17 @@
-# 📁 Data — Dados Persistentes
+# Data — Persistent Files
 
-## Visão Geral
-Arquivos de dados: banco SQLite, CSVs de importação/exportação.
+## Overview
+Data files: SQLite database, import/export CSVs.
 
-## ⚠️ Arquivos (ATENÇÃO: caminho antigo está errado)
+## Files (WARNING: old path is wrong)
 
-| Arquivo | Propósito |
-|---------|-----------|
-| `../database.db` | Banco SQLite principal (⚠️ **NÃO commitar** — está no `.gitignore` — caminho é **raiz do projeto**, não `data/`) |
+| File | Purpose |
+|------|---------|
+| `../database.db` | Main SQLite database (**NEVER commit** — gitignored — path is **project root**, not `data/`) |
 
-## ⚠️ Regras
+## Rules
 
-- O `database.db` mora na **raiz**, **não** em `data/` (`engine.py` cria com path relativo ao CWD, e o app é sempre rodado da raiz)
-- `database.db` está no `.gitignore` — NUNCA adicionar ao git
-- CSVs de importação (export Shopee) podem ficar aqui temporariamente (ex: `shopee_mock_sales.csv`)
-- Prefira usar o SQLite DB para dados persistentes em vez de CSVs
+- `database.db` lives at **project root**, **NOT** in `data/` (`engine.py` creates with CWD-relative path, app always runs from root)
+- `database.db` is gitignored — NEVER add to git
+- Import CSVs (Shopee exports) can live here temporarily (e.g. `shopee_mock_sales.csv`)
+- Prefer SQLite DB over CSVs for persistent data
