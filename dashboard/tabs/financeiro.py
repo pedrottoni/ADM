@@ -148,11 +148,9 @@ def render(user, agents):
                                 </div>
                                 """, unsafe_allow_html=True)
                             with per_col:
-                                period_type = st.radio(
+                                period_type = st.selectbox(
                                     "Agrupar por",
                                     options=["Anual", "Mensal", "Semanal", "Diário"],
-                                    horizontal=True,
-                                    index=0,
                                     key="finance_period_type",
                                     label_visibility="collapsed",
                                 )
