@@ -53,9 +53,19 @@
   background: var(--dx-bg-primary);
 }
 
-.stApp > header {
-  background: var(--dx-sidebar-bg) !important;
-  border-bottom: 1px solid var(--dx-separator);
+section[data-testid="stMain"] .block-container {
+  padding-left: 3rem !important;
+  padding-right: 3rem !important;
+  padding-top: 0 !important;
+}
+
+header[data-testid="stHeader"],
+header.stAppHeader {
+  background: transparent !important;
+}
+header[data-testid="stHeader"] *,
+header.stAppHeader * {
+  background: transparent !important;
 }
 
 /* ── Typography ───────────────────────────────────────────── */
@@ -104,7 +114,7 @@ section[data-testid="stSidebar"] > div {
   font-size: 1.5rem;
 }
 .brand-name {
-  font-size: 1.25rem;
+  font-size: 1.4rem;
   font-weight: 700;
   color: var(--dx-text-primary);
   letter-spacing: -0.02em;
@@ -288,92 +298,10 @@ section[data-testid="stSidebar"] label[data-baseweb="toggle"] span {
   box-shadow: 0 0 0 1px var(--dx-indigo-glow), 0 2px 8px rgba(0, 0, 0, 0.3) !important;
 }
 
-/* ── Chart Cards ─────────────────────────────────────────── */
-.chart-card {
-  background: #1E293B;
-  border: 1px solid #334155;
-  border-radius: 12px;
-  padding: 1.5rem;
-  margin-bottom: 1rem;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
-}
-.chart-card-header {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  margin-bottom: 1rem;
-}
-.chart-card-header-left {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-.chart-card-title {
-  color: #94A3B8;
-  font-size: 0.85rem;
-  font-weight: 500;
-}
-.chart-card-value-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 10px;
-}
-.chart-card-value {
-  color: #F8FAFC;
-  font-size: 1.75rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  line-height: 1.3;
-}
-.chart-card-delta {
-  background: #166534;
-  color: #86efac;
-  border-radius: 100px;
-  padding: 2px 10px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-.chart-card-header-right {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  flex-shrink: 0;
-}
-.chart-card-legend {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  margin-bottom: 0.75rem;
-  font-size: 0.8rem;
-  color: #94A3B8;
-}
-.chart-card-legend-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-.chart-card-legend-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  display: inline-block;
-}
-
 /* ── Card Markers ───────────────────────────────────────── ── */
-.evolution-card-marker {
-  display: none;
-}
 
-/* Big evolution card — inside st.columns(1) child column */
-.stHorizontalBlock > * > .stVerticalBlock:has(div.evolution-card-marker) {
+/* Evolution card — stHorizontalBlock containing the chart columns */
+[data-testid="stHorizontalBlock"]:has(.scrollable-chart-marker) {
   background: #1E293B !important;
   border: 1px solid #334155 !important;
   border-radius: 12px !important;
@@ -381,16 +309,18 @@ section[data-testid="stSidebar"] label[data-baseweb="toggle"] span {
   margin-bottom: 0.5rem !important;
 }
 
+
+
 /* Make chart column scrollable when content overflows */
-.stVerticalBlock:has(div.scrollable-chart-marker) {
+.stVerticalBlock:has(> .stElementContainer > div.scrollable-chart-marker) {
   overflow-x: auto !important;
   overflow-y: hidden !important;
 }
-.stVerticalBlock:has(div.scrollable-chart-marker) .stElementContainer {
+.stVerticalBlock:has(> .stElementContainer > div.scrollable-chart-marker) .stElementContainer {
   padding: 0 !important;
   margin: 0 !important;
 }
-.stVerticalBlock:has(div.scrollable-chart-marker) .stPlotlyChart {
+.stVerticalBlock:has(> .stElementContainer > div.scrollable-chart-marker) .stPlotlyChart {
   padding: 0 !important;
   margin: 0 !important;
 }
@@ -410,7 +340,7 @@ div[data-testid="stPlotlyChart"] > div {
 div[data-testid="stPlotlyChart"] .plot-container {
   padding: 0 !important;
 }
-.stVerticalBlock:has(div.scrollable-chart-marker) div[data-testid="stPlotlyChart"] {
+.stVerticalBlock:has(> .stElementContainer > div.scrollable-chart-marker) div[data-testid="stPlotlyChart"] {
   padding: 0 !important;
   margin: 0 !important;
 }
@@ -419,14 +349,14 @@ div[data-testid="stPlotlyChart"] .plot-container {
 /* Estica o SVG do Plotly pra preencher o container inteiro,
    removendo o offset interno que deixa aquela "margem verde".
    Aplicado SÓ dentro do contexto scrollable-chart-marker (evolution chart). */
-.stVerticalBlock:has(div.scrollable-chart-marker) .js-plotly-plot,
-.stVerticalBlock:has(div.scrollable-chart-marker) .plot-container,
-.stVerticalBlock:has(div.scrollable-chart-marker) .main-svg {
+.stVerticalBlock:has(> .stElementContainer > div.scrollable-chart-marker) .js-plotly-plot,
+.stVerticalBlock:has(> .stElementContainer > div.scrollable-chart-marker) .plot-container,
+.stVerticalBlock:has(> .stElementContainer > div.scrollable-chart-marker) .main-svg {
   width: 100% !important;
   left: 0 !important;
   right: 0 !important;
 }
-.stVerticalBlock:has(div.scrollable-chart-marker) .plotly-graph-div {
+.stVerticalBlock:has(> .stElementContainer > div.scrollable-chart-marker) .plotly-graph-div {
   width: 100% !important;
   overflow: visible !important;
   position: relative !important;
@@ -435,17 +365,12 @@ div[data-testid="stPlotlyChart"] .plot-container {
    e zerá-lo desalinhararia os labels (0, 2k...). O Plotly já aceita margin.l=0 absoluto. */
 
 /* ── Sub-blocks (Evolução | Lucro | Categorias) ───────────── */
-/* Bordas + altura uniforme entre os sub-blocos irmãos.
-   Evolução é mais alta (cobre Lucro+Cat somados). */
-.sub-block {
-  border: 1px solid var(--dx-card-border);
-  border-radius: var(--dx-radius-m);
-  padding: 1.25rem;
-  background: var(--dx-card-bg);
-}
-/* Os sub-blocos são st.container() que contém o scrollable-chart-marker (Evolução).
-   Escopamos via :has() o container certo. */
-:where([data-testid="stContainer"]):has(.scrollable-chart-marker) {
+/* Estiliza o stVerticalBlock que contém o scrollable-chart-marker (Evolução).
+   :has(> .stElementContainer:has(.scrollable-chart-marker)) garante que o
+   marker está dentro de um filho direto, evitando que ancestors mais
+   externos (que também contêm o marker via descendência profunda) recebam
+   o card styling. */
+:where([data-testid="stVerticalBlock"]):has(> .stElementContainer:has(.scrollable-chart-marker)) {
   border: 1px solid var(--dx-card-border);
   border-radius: var(--dx-radius-m);
   padding: 1.25rem;
@@ -455,18 +380,13 @@ div[data-testid="stPlotlyChart"] .plot-container {
   flex-direction: column;
   gap: 0.75rem;
 }
-:where([data-testid="stContainer"]):has(.scrollable-chart-marker) .chart-card-header {
-  flex-shrink: 0;
-  margin-bottom: 0.25rem;
-}
-:where([data-testid="stContainer"]):has(.scrollable-chart-marker) div[data-testid="stPlotlyChart"] {
+:where([data-testid="stVerticalBlock"]):has(> .stElementContainer:has(.scrollable-chart-marker)) div[data-testid="stPlotlyChart"] {
   flex-grow: 1 !important;
-  min-height: 480px;
+  min-height: 410px;
 }
-
 /* Sub-bloco Lucro: 1º stContainer dentro do 2º data-testid=column
    (1ª coluna = Evolução, 2ª coluna = Lucro+Cat empilhados) */
-div[data-testid="column"]:nth-of-type(2) [data-testid="stContainer"]:nth-of-type(1) {
+div[data-testid="stColumn"]:nth-of-type(2) [data-testid="stContainer"]:nth-of-type(1) {
   border: 1px solid var(--dx-card-border);
   border-radius: var(--dx-radius-m);
   padding: 1.25rem;
@@ -475,7 +395,7 @@ div[data-testid="column"]:nth-of-type(2) [data-testid="stContainer"]:nth-of-type
 }
 
 /* Sub-bloco Categorias: 2º stContainer dentro do 2º data-testid=column */
-div[data-testid="column"]:nth-of-type(2) [data-testid="stContainer"]:nth-of-type(2) {
+div[data-testid="stColumn"]:nth-of-type(2) [data-testid="stContainer"]:nth-of-type(2) {
   border: 1px solid var(--dx-card-border);
   border-radius: var(--dx-radius-m);
   padding: 1.25rem;
@@ -490,37 +410,20 @@ div[data-testid="column"]:nth-of-type(2) [data-testid="stContainer"]:nth-of-type
   justify-content: space-between !important;
 }
 
-/* ── Separadores entre sub-blocos ─────────────────────────── */
-/* Linha VERTICAL (1px) entre Evolução (esq) e Lucro+Cat (dir).
-   Renderizada no centro do gap de 1rem entre as colunas,
-   usando ::before posicionado absolutamente à esquerda da coluna. */
-div[data-testid="column"]:nth-of-type(2) {
+/* ── Divisória vertical entre colunas do chart card ──────── */
+/* Pseudo-elemento ::before na 2ª coluna posicionado no gap.
+   top:0; bottom:0 se estende à altura do pai sem depender
+   de height:100% na cadeia de wrappers. */
+[data-testid="stHorizontalBlock"]:has(.scrollable-chart-marker) > [data-testid="stColumn"]:nth-of-type(2) {
   position: relative !important;
 }
-div[data-testid="column"]:nth-of-type(2)::before {
+[data-testid="stHorizontalBlock"]:has(.scrollable-chart-marker) > [data-testid="stColumn"]:nth-of-type(2)::before {
   content: "";
   position: absolute;
+  left: -1rem;
   top: 0;
   bottom: 0;
-  left: -0.5rem; /* centro do gap (gap=1rem → centro=0.5rem) */
   width: 1px;
-  background: var(--dx-separator);
-  pointer-events: none;
-}
-
-/* Linha HORIZONTAL (1px) entre Lucro e Despesas.
-   Renderizada no centro do gap vertical entre os 2 sub-blocos,
-   via ::after no sub-bloco Lucro. */
-div[data-testid="column"]:nth-of-type(2) [data-testid="stContainer"]:nth-of-type(1) {
-  position: relative !important;
-}
-div[data-testid="column"]:nth-of-type(2) [data-testid="stContainer"]:nth-of-type(1)::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: -0.5rem; /* centro do gap (gap=1rem → centro=0.5rem) */
-  height: 1px;
   background: var(--dx-separator);
   pointer-events: none;
 }
@@ -532,6 +435,8 @@ div[data-testid="column"]:nth-of-type(2) [data-testid="stContainer"]:nth-of-type
   padding: 8px 20px !important;
   border: none !important;
   transition: all 0.15s ease;
+  justify-content: flex-start !important;
+  text-align: left !important;
 }
 
 .stButton > button[kind="primary"],
@@ -685,7 +590,7 @@ div[data-testid="stDataFrame"] tbody tr:hover td {
 }
 
 /* ── Columns / Layout ────────────────────────────────────── */
-div[data-testid="column"] {
+div[data-testid="stColumn"] {
   gap: 1rem;
 }
 
@@ -734,4 +639,25 @@ div[data-baseweb="tag"] {
 
 div[data-testid="stImage"] img {
   border-radius: var(--dx-radius-s);
+}
+
+/* ── Period selectbox — trigger ──────────────────────────── */
+[data-testid="stSelectbox"] [data-baseweb="select"] {
+  font-size: 0.8rem !important;
+}
+[data-testid="stSelectbox"] [data-baseweb="select"] > div {
+  height: 2rem !important;
+  min-height: 2rem !important;
+}
+[data-testid="stSelectbox"] [data-baseweb="select"] span {
+  font-size: 0.8rem !important;
+}
+[data-testid="stSelectbox"] [data-baseweb="select"] svg {
+  width: 14px !important;
+  height: 14px !important;
+}
+
+/* ── Period selectbox — dropdown items ───────────────────── */
+[data-baseweb="popover"] * {
+  font-size: 0.8rem !important;
 }

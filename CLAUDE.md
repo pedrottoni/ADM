@@ -74,3 +74,11 @@ products = session.exec(select(Product)).all()
 - **LLM fallback**: When primary provider fails and `GOOGLE_API_KEY` exists, automatically falls back to Gemini.
 - **`settings_view.py` bug**: Calls `llm_client.setup_provider()` but method is actually `_setup_provider()` — will raise `AttributeError` at runtime.
 - **Duplicate `MARKETPLACE_LABELS`**: Defined in both `core/competitor_service.py` (with emojis) and `scrapers/__init__.py` (without).
+
+## Design System
+
+- **CSS file:** `dashboard/static/cupertino.css` — Dashdark X theme, loaded via `st.markdown()` in `app.py`
+- **Tokens:** `var(--dx-*)` CSS variables in `:root`. Never hardcode hex values.
+- **Streamlit DOM:** `data-testid` values are `stColumn`, `stVerticalBlock`, `stHorizontalBlock` — NOT `column`.
+- **CSS-in-JS override:** Emotion injects after our `<style>`. Use `<script>` via `st.markdown()` to override inline styles.
+- **`:has()` pitfall:** `:has(.marker)` matches ALL ancestors. Use `:has(> .parent:has(.marker))` to scope.

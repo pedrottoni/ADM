@@ -1,3 +1,5 @@
+import re
+
 import streamlit as st
 import pandas as pd
 from core.competitor_service import competitor_service, MARKETPLACES, MARKETPLACE_LABELS
@@ -32,7 +34,7 @@ def render_competitor_page(user_id: int):
         "Marketplaces para monitorar",
         MARKETPLACES,
         default=["shopee", "mercadolivre", "amazon"],
-        format_func=lambda x: MARKETPLACE_LABELS.get(x, x),
+        format_func=lambda x: re.sub(r':material/\w+:\s*', '', MARKETPLACE_LABELS.get(x, x)),
     )
 
     if search_clicked:

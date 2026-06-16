@@ -145,13 +145,6 @@ def render(user, agents):
 
             st.divider()
 
-            st.markdown("""
-            <style>
-            [data-testid="stExpander"] summary div[data-testid="stMarkdownContainer"] { width: 100% !important; }
-            [data-testid="stExpander"] summary p { display: flex !important; justify-content: space-between !important; width: 100% !important; align-items: center !important; }
-            </style>
-            """, unsafe_allow_html=True)
-
             for base_name, data in product_groups.items():
                 grp_margem = (data['lucro'] / data['receita'] * 100) if data['receita'] > 0 else 0.0
                 margem_color = "green" if grp_margem >= 20 else ("orange" if grp_margem >= 10 else "red")

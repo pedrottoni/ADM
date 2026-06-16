@@ -38,6 +38,15 @@ from pathlib import Path as _Path
 _CSS_PATH = _Path(__file__).resolve().parent / "static" / "cupertino.css"
 _CSS_CONTENT = _CSS_PATH.read_text(encoding="utf-8")
 st.markdown(f"<style>{_CSS_CONTENT}</style>", unsafe_allow_html=True)
+# Força header transparente — o CSS-in-JS do Emotion injeta background
+# depois do nosso <style>, então usamos JS para limpar inline style.
+st.markdown(
+    '<script>'
+    'const h=document.querySelector(\'header[data-testid="stHeader"]\');'
+    'if(h){h.style.background="transparent";h.style.backgroundColor="transparent"}'
+    '</script>',
+    unsafe_allow_html=True,
+)
 # Marker invisível que prova que o CSS foi injetado nesta sessão.
 # No DevTools, F12 → Elements → procure por <meta name="css-loaded">.
 # Se você ver o conteúdo, o CSS injetou de fato.
@@ -93,49 +102,16 @@ def render_sidebar(user):
         # ── Brand / Logo ──
         st.markdown(
             '<div class="sidebar-brand">'
-            '  <span class="brand-icon"><span class="material-symbols-rounded">rocket</span></span>'
-            '  <span class="brand-name">ADM</span>'
-            '</div>',
-            unsafe_allow_html=True,
-        )
-        st.markdown(
-            '<div class="sidebar-subtitle">Shopee Growth Quest</div>',
-            unsafe_allow_html=True,
-        )
-
-        st.divider()
-
-        # ── User Profile ──
-        st.markdown(
-            f'<div class="user-profile">'
-            f'  <div class="user-avatar"><span class="material-symbols-rounded">person</span></div>'
-            f'  <div class="user-info">'
-            f'    <div class="user-name">{user.username}</div>'
-            f'    <div class="user-level">Nível {user.level}</div>'
-            f'  </div>'
-            f'</div>',
-            unsafe_allow_html=True,
-        )
-
-        # XP Bar
-        xp_progress = (user.xp % 100) / 100 if user.xp else 0
-        st.progress(min(xp_progress, 1.0), text=f"XP: {user.xp}")
-
-        # Achievements
-        st.markdown(
-            '<div class="sidebar-achievements">'
-            '<span class="achievement-badge"><span class="material-symbols-rounded">emoji_events</span> Fundador</span>'
+            '  <span class="brand-name">Shopee Growth Quest</span>'
             '</div>',
             unsafe_allow_html=True,
         )
 
         st.divider()
+
         st.markdown("###  Navegação")
 
         # ── Navigation (st.button com icon=:material/: nativo, 1.58+) ──
-        # Streamlit 1.58 aceita icon=":material/icon_name:" (Material
-        # Symbols Rounded - 4250 ícones disponíveis). Não precisa de
-        # Font Awesome nem de hack com HTML/CSS.
         _NAV_ICONS = {
             "resumo":        ":material/home:",
             "financeiro":    ":material/payments:",
@@ -157,10 +133,8 @@ def render_sidebar(user):
             ) and not _active:
                 st.session_state.active_tab = _key
                 st.rerun()
-        # Compat: 'selected' usado pelo resto do main()
         selected = TAB_LABELS[TAB_KEYS.index(st.session_state.active_tab)]
 
-        # Update active tab if changed
         new_idx = TAB_LABELS.index(selected)
         new_key = TAB_KEYS[new_idx]
         if new_key != st.session_state.active_tab:
@@ -169,10 +143,7 @@ def render_sidebar(user):
 
         st.divider()
 
-        # ── LLM Toggle (moved from header) ──
-        # ── LLM Toggle (ícone FA no label é escapado, mas o chip "IA Ativa"
-        #     pode ser estilizado via format_func se a versão do Streamlit
-        #     suportar. Por enquanto mantemos label simples) ──
+        # ── LLM Toggle ──
         llm_on = st.toggle(
             "IA Ativa",
             value=llm_client.enabled,
@@ -181,6 +152,30 @@ def render_sidebar(user):
         if llm_on != llm_client.enabled:
             llm_client.set_enabled(llm_on)
             st.rerun()
+
+        st.divider()
+
+        # ── User Profile ──
+        st.markdown(
+            f'<div class="user-profile">'
+            f'  <div class="user-avatar"><span class="material-symbols-rounded">person</span></div>'
+            f'  <div class="user-info">'
+            f'    <div class="user-name">{user.username}</div>'
+            f'    <div class="user-level">Nível {user.level}</div>'
+            f'  </div>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
+
+        xp_progress = (user.xp % 100) / 100 if user.xp else 0
+        st.progress(min(xp_progress, 1.0), text=f"XP: {user.xp}")
+
+        st.markdown(
+            '<div class="sidebar-achievements">'
+            '<span class="achievement-badge"><span class="material-symbols-rounded">emoji_events</span> Fundador</span>'
+            '</div>',
+            unsafe_allow_html=True,
+        )
 
         # ── Bottom CTA ──
         st.markdown(

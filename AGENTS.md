@@ -16,10 +16,10 @@ Each module has its own `AGENTS.md` — read it before opening source files.
 | `core/gamification/` | XP, levels, missions (quadratic formula) |
 | `dashboard/` | Streamlit app entry point (`app.py`) |
 | `dashboard/tabs/` | 7 tab modules (one `render(user, agents)` function each) |
-| `dashboard/components/` | Reusable UI components |
+| `dashboard/components/` | Reusable UI components (metric_card, competitor_view, settings_view) |
+| `dashboard/static/` | `cupertino.css` — ~660 lines, Dashdark X design system |
 | `scrapers/` | Shopee, Amazon, Enjoei, MercadoLivre, Magalu, Shein (Tavily+Firecrawl) |
-| `docs/` | Project plan and status |
-| `scripts/` | Utility scripts (empty) |
+| `docs/` | Project plan, status, design system (`DESIGN.md`) |
 | `data/` | CSVs only — DB is NOT here |
 | `tests/` | Empty, prepared for pytest |
 
@@ -60,6 +60,16 @@ User → Dashboard (app.py) → Tabs (tabs/*.py) → Agents → LLMClient / Data
                                                            ↕
                                                        Tavily / Firecrawl (external)
 ```
+
+## Design System (Dashdark X)
+
+- **CSS file:** `dashboard/static/cupertino.css` — loaded via `st.markdown(<style>...)` in `app.py`
+- **Tokens:** Use `var(--dx-*)` CSS variables (defined in `:root`), never hardcode hex values
+- **Theme config:** `.streamlit/config.toml` sets dark mode + primary color
+- **Custom components:** `metric_card` uses `st.html()` to bypass Streamlit CSS-in-JS (Emotion)
+- **DOM quirks:** Streamlit wraps everything in `stColumn` → `stVerticalBlock` → `stElementContainer` → `stHtml`. The `data-testid` values are `stColumn`, `stVerticalBlock`, `stHorizontalBlock` — NOT `column`.
+- **CSS-in-JS override:** Streamlit's Emotion cache injects styles AFTER our `<style>` tag. To override inline styles (e.g., header background), use JavaScript via `st.markdown(<script>...)`.
+- **Streamlit `:has()` pitfall:** CSS `:has(.marker)` matches ALL ancestors containing the marker as descendants. Use `:has(> .parent:has(.marker))` to scope to direct children only.
 
 ## Adding a New Tab
 
