@@ -73,12 +73,7 @@ def metric_card(label: str, value: str, delta: str | None = None) -> None:
         box-shadow:0 1px 3px rgba(0,0,0,0.2);
         transition:all 0.2s ease;
     ">
-        <div class="mc-label" style="
-            color:#94A3B8;
-            font-size:0.8rem;
-            font-weight:500;
-            margin-bottom:4px;
-        ">{label_html}</div>
+        <div class="mc-label">{label_html}</div>
         <div class="mc-row" style="
             display:flex;
             flex-direction:row;

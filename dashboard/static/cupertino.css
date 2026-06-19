@@ -352,12 +352,15 @@ section[data-testid="stSidebar"] label[data-baseweb="toggle"] span {
 .top-rankings-col:last-child {
   padding-right: 0;
 }
-.top-rankings-col h4 {
+.mc-label {
   font-size: 0.8rem !important;
   font-weight: 500 !important;
   color: var(--dx-text-secondary) !important;
   margin-bottom: 0.75rem !important;
   letter-spacing: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
 }
 .top-list {
   display: flex;
