@@ -196,7 +196,7 @@ def render_sidebar(user):
         # ── IA Toggle ──
         st.divider()
         llm_on = st.toggle(
-            "🤖 IA Ativa",
+            ":material/smart_toy: IA Ativa",
             value=llm_client.enabled,
             help="Ativar ou desativar a assistente de IA",
             label_visibility="visible",

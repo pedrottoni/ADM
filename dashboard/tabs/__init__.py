@@ -7,6 +7,7 @@ from .marketing import render as render_marketing
 from .atendimento import render as render_atendimento
 from .anuncios import render as render_anuncios
 from .concorrencia import render as render_concorrencia
+from .tarefas import render as render_tarefas
 from .configuracoes import render as render_configuracoes
 
 TAB_RENDERERS = {
@@ -16,5 +17,6 @@ TAB_RENDERERS = {
     "atendimento": render_atendimento,
     "anuncios": render_anuncios,
     "concorrencia": render_concorrencia,
+    "tarefas": render_tarefas,
     "configuracoes": render_configuracoes,
 }

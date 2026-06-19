@@ -348,6 +348,11 @@ Border-radius `--dx-radius-s`, padding `12px 16px`, font-size `0.9rem`.
 - **No:** Não misture accent colors em uma mesma área — só `--dx-indigo` como primária
 - **No:** Não coloque texto no `delta` da metric_card — só :material/ icon + seta + número + %
 - **No:** Não use `:has()` fora dos contextos documentados — funciona, mas vira débito técnico
+- **No:** Não use emojis (🏆🤖🔴🟡🔵🟢⚪ etc.) no código. Use apenas ícones Material Symbols:
+  - Em HTML: `<span class="material-symbols-rounded">nome_do_icone</span>`
+  - Em markdown Streamlit: `:material/nome_do_icone: texto`
+  - Lista de ícones: https://fonts.google.com/icons
+  - Exceção: emojis no conteúdo do banco de dados do usuário (perfis, mensagens) — apenas UI do dashboard deve ser limpa
 
 ---
 

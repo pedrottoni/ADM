@@ -76,11 +76,11 @@ def render(user, agents):
     st.markdown(
         f'<div class="top-rankings-card">'
         f'  <div class="top-rankings-col">'
-        f'    <h4>🏆 Top Vendas</h4>'
+        f'    <h4><span class="material-symbols-rounded">trending_up</span> Top Vendas</h4>'
         f'    <div class="top-list">{vendas_html}</div>'
         f'  </div>'
         f'  <div class="top-rankings-col">'
-        f'    <h4>🏆 Top Produtos</h4>'
+        f'    <h4><span class="material-symbols-rounded">inventory_2</span> Top Produtos</h4>'
         f'    <div class="top-list">{produtos_html}</div>'
         f'  </div>'
         f'</div>',

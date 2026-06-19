@@ -110,3 +110,19 @@ class CompetitorListing(SQLModel, table=True):
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
     product: Optional[Product] = Relationship(back_populates="competitor_listings")
+
+
+class Task(SQLModel, table=True):
+    """Practical operations task — replaces the old gamification mission system."""
+    id: Optional[int] = Field(default=None, primary_key=True)
+    title: str
+    description: str
+    category: str  # "vendas", "estoque", "concorrencia", "marketing", "anuncio", "relatorio"
+    priority: int = Field(default=3)  # 1=urgente .. 5=baixa
+    is_completed: bool = Field(default=False)
+    auto_generated: bool = Field(default=True)
+    target_tab: Optional[str] = None  # ex: "financeiro", "concorrencia" — atalho na UI
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    completed_at: Optional[datetime] = None
+
+    user_id: Optional[int] = Field(default=None, foreign_key="user.id")

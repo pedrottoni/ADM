@@ -26,6 +26,14 @@ class LLMClient:
         self.enabled = value
         Config.set_llm_enabled(value)
 
+    def setup_provider(self):
+        """Re-initialize the current provider after config changes.
+        
+        Called by settings_view.py after saving a new API key so the
+        client picks up the updated credential without a restart.
+        """
+        self._setup_provider()
+
     # ------------------------------------------------------------------
     # Provider setup
     # ------------------------------------------------------------------
