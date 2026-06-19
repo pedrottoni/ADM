@@ -38,9 +38,21 @@ def render(user, agents):
         st.markdown("#### :material/emoji_events: Top Vendas")
         top_prods = finance_agent.get_top_products(user.id, limit=10)
         if top_prods:
+            max_rev = max(p['total_revenue'] for p in top_prods) if top_prods else 1
+            st.markdown('<div class="top-list">', unsafe_allow_html=True)
             for i, p in enumerate(top_prods, 1):
-                title = p['product_title'][:35] + "..." if len(p['product_title']) > 35 else p['product_title']
-                st.markdown(f"**{i}.** {title} — *R$ {p['total_revenue']:,.2f}*")
+                title = p['product_title'][:28] + "..." if len(p['product_title']) > 28 else p['product_title']
+                pct = (p['total_revenue'] / max_rev * 100) if max_rev > 0 else 0
+                st.markdown(
+                    f'<div class="top-item">'
+                    f'  <span class="top-rank">#{i}</span>'
+                    f'  <span class="top-name">{title}</span>'
+                    f'  <span class="top-bar-track"><span class="top-bar-fill revenue" style="width:{pct:.0f}%"></span></span>'
+                    f'  <span class="top-value">R$ {p["total_revenue"]:,.2f}</span>'
+                    f'</div>',
+                    unsafe_allow_html=True,
+                )
+            st.markdown("</div>", unsafe_allow_html=True)
         else:
             st.info("Nenhuma venda registrada ainda.")
 
@@ -48,13 +60,25 @@ def render(user, agents):
         st.markdown("#### :material/emoji_events: Top Produtos")
         top_by_potes = finance_agent.get_top_products_by_potes(user.id, limit=10)
         if top_by_potes:
+            max_potes = max(p['total_potes'] for p in top_by_potes) if top_by_potes else 1
+            st.markdown('<div class="top-list">', unsafe_allow_html=True)
             for i, p in enumerate(top_by_potes, 1):
-                title = p['product_title'][:35] + "..." if len(p['product_title']) > 35 else p['product_title']
-                st.markdown(f"**{i}.** {title} — **:green[Vendidos: {p['total_potes']} un.]**")
+                title = p['product_title'][:28] + "..." if len(p['product_title']) > 28 else p['product_title']
+                pct = (p['total_potes'] / max_potes * 100) if max_potes > 0 else 0
+                st.markdown(
+                    f'<div class="top-item">'
+                    f'  <span class="top-rank">#{i}</span>'
+                    f'  <span class="top-name">{title}</span>'
+                    f'  <span class="top-bar-track"><span class="top-bar-fill units" style="width:{pct:.0f}%"></span></span>'
+                    f'  <span class="top-value" style="color:var(--dx-teal);">{p["total_potes"]} un.</span>'
+                    f'</div>',
+                    unsafe_allow_html=True,
+                )
+            st.markdown("</div>", unsafe_allow_html=True)
         else:
             st.info("Nenhum produto vendido ainda.")
 
-    st.divider()
+    st.markdown("<div style='height:4px'></div>", unsafe_allow_html=True)
 
     # ── Progresso + Alertas (2 colunas, abaixo) ──
     col_bot_left, col_bot_right = st.columns([1, 1])
@@ -66,7 +90,7 @@ def render(user, agents):
         st.progress(progress, text=f"Nível {user.level} — {user.xp}/{next_level_xp} XP")
         st.caption(f"Total de missões completadas: {len([m for m in user.missions if m.is_completed]) if user.missions else 0}")
 
-        st.divider()
+        st.markdown("<div style='height:4px'></div>", unsafe_allow_html=True)
 
         # ── Missões Ativas ──
         st.markdown("**Missões Ativas**")
@@ -90,23 +114,20 @@ def render(user, agents):
         else:
             st.success("Todos os itens com estoque saudável.", icon=":material/check_circle:")
 
-    st.divider()
+    st.markdown("<div style='height:4px'></div>", unsafe_allow_html=True)
 
     # ── Ações Rápidas ──
     st.markdown("#### :material/bolt: Ações Rápidas")
     qa1, qa2, qa3, qa4 = st.columns(4)
     with qa1:
-        if st.button("Nova Venda", icon=":material/payments:", use_container_width=True, type="primary"):
-            st.switch_page("dashboard/main.py")  # fallback: will just scroll to tab2
-            # Streamlit doesn't support programmatic tab switching;
-            # We redirect to the same page (a re-run) and show a toast
+        if st.button("➕ Nova Venda", use_container_width=True, type="primary"):
             st.toast("Vá para a aba :material/payments: Financeiro > Registrar Venda")
     with qa2:
-        if st.button("Novo Produto", icon=":material/inventory_2:", use_container_width=True):
+        if st.button(":material/inventory_2: Novo Produto", use_container_width=True, type="secondary"):
             st.toast("Vá para a aba :material/inventory_2: Meus Anúncios > Adicionar Anúncio")
     with qa3:
-        if st.button("Ver Concorrência", icon=":material/search:", use_container_width=True):
+        if st.button(":material/search: Concorrência", use_container_width=True, type="secondary"):
             st.toast("Vá para a aba :material/search: Concorrência")
     with qa4:
-        if st.button("Importar CSV", icon=":material/file_download:", use_container_width=True):
+        if st.button(":material/file_download: Importar", use_container_width=True, type="secondary"):
             st.toast("Vá para a aba :material/inventory_2: Meus Anúncios > Importar")

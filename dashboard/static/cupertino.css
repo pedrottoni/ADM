@@ -331,53 +331,63 @@ section[data-testid="stSidebar"] label[data-baseweb="toggle"] span {
 
 
 
-/* ── Top Ranking Lists (Resumo) ──────────────────────────── */
+/* ── Top Ranking Lists (Resumo) — progress bar style ──────── */
 .top-list {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
 }
 .top-item {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 8px 12px;
-  background: var(--dx-card-bg);
-  border-radius: var(--dx-radius-m, 10px);
-  border: 1px solid var(--dx-separator);
-  transition: background 0.15s ease;
-}
-.top-item:hover {
-  background: var(--dx-nav-hover-bg);
+  padding: 6px 0;
 }
 .top-rank {
-  width: 28px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--dx-indigo);
-  color: #fff;
+  width: 22px;
   font-size: 0.75rem;
   font-weight: 600;
-  border-radius: 8px;
+  color: var(--dx-muted);
   flex-shrink: 0;
+  text-align: right;
 }
 .top-name {
-  flex: 1;
-  font-size: 0.85rem;
+  width: 140px;
+  font-size: 0.82rem;
   font-weight: 500;
   color: var(--dx-text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  flex-shrink: 0;
+}
+.top-bar-track {
+  flex: 1;
+  height: 8px;
+  background: var(--dx-separator);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.top-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.4s ease;
+}
+.top-bar-fill.revenue {
+  background: var(--dx-indigo);
+}
+.top-bar-fill.units {
+  background: var(--dx-teal, #14b8a6);
 }
 .top-value {
-  font-size: 0.8rem;
+  width: 90px;
+  font-size: 0.78rem;
   font-weight: 600;
   color: var(--dx-text-secondary);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+  text-align: right;
+  flex-shrink: 0;
 }
 
 /* ── Progress section (Resumo) ──────────────────────────── */
