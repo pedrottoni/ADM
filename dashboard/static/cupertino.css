@@ -358,6 +358,11 @@ section[data-testid="stSidebar"] label[data-baseweb="toggle"] span {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 0;
+  background: var(--dx-card-bg);
+  border: 1px solid var(--dx-card-border);
+  border-radius: var(--dx-radius-m);
+  padding: 1.25rem;
+  margin-bottom: 0.5rem;
 }
 .top-rankings-col {
   padding: 0 1rem;
@@ -439,16 +444,32 @@ section[data-testid="stSidebar"] .stProgress {
   margin: 0 !important;
 }
 
-/* ── Section Cards via :has() ────────────────────────────────────────────────── */
-/* Progresso + Alertas: card on the horizontal block */
-[data-testid="stHorizontalBlock"]:has(.progresso-card-marker) {
+/* ── Section Cards ────────────────────────────────────────────────── */
+/* Progresso + Alertas: card applied via JS on individual stVerticalBlock */
+.card-section {
   background: var(--dx-card-bg);
   border: 1px solid var(--dx-card-border);
   border-radius: var(--dx-radius-m);
   padding: 1.25rem;
 }
 
-/* Ações Rápidas: card on the vertical block */
+/* Progresso — individual card via :has() */
+div[data-testid="stVerticalBlock"]:has(.progresso-card-marker) {
+  background: var(--dx-card-bg);
+  border: 1px solid var(--dx-card-border);
+  border-radius: var(--dx-radius-m);
+  padding: 1.25rem;
+}
+
+/* Alertas — individual card via :has() */
+div[data-testid="stVerticalBlock"]:has(.alertas-card-marker) {
+  background: var(--dx-card-bg);
+  border: 1px solid var(--dx-card-border);
+  border-radius: var(--dx-radius-m);
+  padding: 1.25rem;
+}
+
+/* Ações Rápidas — individual card via :has() */
 div[data-testid="stVerticalBlock"]:has(.acoes-card-marker) {
   background: var(--dx-card-bg);
   border: 1px solid var(--dx-card-border);

@@ -48,6 +48,10 @@ st.markdown(
     '</script>',
     unsafe_allow_html=True,
 )
+# Progresso + Alertas + Ações Rápidas: card styling via CSS :has() selectors
+# CSS targets div[data-testid="stVerticalBlock"]:has(.progresso-card-marker) etc.
+
+
 # Marker invisível que prova que o CSS foi injetado nesta sessão.
 # No DevTools, F12 → Elements → procure por <meta name="css-loaded">.
 # Se você ver o conteúdo, o CSS injetou de fato.
