@@ -353,16 +353,16 @@ section[data-testid="stSidebar"] label[data-baseweb="toggle"] span {
   padding-right: 0;
 }
 .top-rankings-col h4 {
-  font-size: 0.85rem !important;
-  font-weight: 600 !important;
-  color: var(--dx-text-primary) !important;
+  font-size: 0.8rem !important;
+  font-weight: 500 !important;
+  color: var(--dx-text-secondary) !important;
   margin-bottom: 0.75rem !important;
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
 }
 .top-list {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 0;
 }
 .top-item {
   display: flex;
@@ -398,7 +398,7 @@ section[data-testid="stSidebar"] label[data-baseweb="toggle"] span {
 }
 .top-name {
   flex: 1;
-  font-size: 0.82rem;
+  font-size: 1.02rem;
   font-weight: 500;
   color: var(--dx-text-primary);
   white-space: nowrap;

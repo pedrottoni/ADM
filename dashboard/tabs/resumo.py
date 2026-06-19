@@ -51,7 +51,7 @@ def render(user, agents):
             title = p['product_title'][:28] + "..." if len(p['product_title']) > 28 else p['product_title']
             vendas_html += (
                 f'<div class="top-item">'
-                f'  <span class="{_rank_class(i)}">#{i}</span>'
+                f'  <span class="{_rank_class(i)}">{i}</span>'
                 f'  <span class="top-name">{title}</span>'
                 f'  <span class="top-value">R$ {p["total_revenue"]:,.2f}</span>'
                 f'</div>'
@@ -65,7 +65,7 @@ def render(user, agents):
             title = p['product_title'][:28] + "..." if len(p['product_title']) > 28 else p['product_title']
             produtos_html += (
                 f'<div class="top-item">'
-                f'  <span class="{_rank_class(i)}">#{i}</span>'
+                f'  <span class="{_rank_class(i)}">{i}</span>'
                 f'  <span class="top-name">{title}</span>'
                 f'  <span class="top-value top-value-teal">{p["total_potes"]} un.</span>'
                 f'</div>'
