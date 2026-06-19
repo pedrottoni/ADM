@@ -46,6 +46,8 @@
   --dx-nav-active-bg: #1E293B;
   --dx-nav-hover-bg: rgba(148, 163, 184, 0.08);
   --dx-nav-active-border: 3px solid var(--dx-indigo);
+  --dx-teal: #2DD4BF;
+  --dx-teal-glow: rgba(45, 212, 191, 0.2);
 }
 
 /* ── Base ─────────────────────────────────────────────────── */
@@ -66,6 +68,21 @@ header.stAppHeader {
 header[data-testid="stHeader"] *,
 header.stAppHeader * {
   background: transparent !important;
+}
+
+/* ── Page entrance animation ────────────────────────────── */
+@keyframes page-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+section[data-testid="stMain"] .block-container {
+  animation: page-fade-in 0.3s ease-out;
 }
 
 /* ── Typography ───────────────────────────────────────────── */
@@ -91,6 +108,18 @@ h2 { font-size: 1.5rem !important; }
   margin-bottom: 1.5rem !important;
 }
 
+/* ── Sidebar IA Toggle ─────────────────────────────────── */
+/* Toggle no sidebar, abaixo do card de tarefas */
+section[data-testid="stSidebar"] .stToggle {
+  padding-top: 0 !important;
+}
+section[data-testid="stSidebar"] .stToggle label {
+  font-size: 0.8rem !important;
+  color: var(--dx-text-secondary) !important;
+}
+
+
+
 /* ── SIDEBAR ──────────────────────────────────────────────── */
 section[data-testid="stSidebar"] {
   background: var(--dx-sidebar-bg) !important;
@@ -102,6 +131,83 @@ section[data-testid="stSidebar"] {
 section[data-testid="stSidebar"] > div {
   padding: 1.25rem 1rem !important;
 }
+
+/* ── Nav Container ────────────────────────────────────────── */
+/* Seletores usam kind="primary" / kind="secondary" (valores reais do DOM).
+   Emite data-testid="stBaseButton-primary" / "stBaseButton-secondary". */
+
+/* ── Nav buttons — remove Streamlit defaults ─────────────── */
+/* Specificity: section[...] button[kind="..."] = 0-2-2
+   Wins against: .stButton > button[kind="..."] = 0-2-1 */
+
+/* Reset .stButton wrapper around nav buttons */
+section[data-testid="stSidebar"] .stButton {
+  margin: 0 !important;
+  padding: 0 !important;
+  min-height: 0 !important;
+}
+
+/* BOTH primary and secondary: strip border, set layout */
+section[data-testid="stSidebar"] button[kind="primary"],
+section[data-testid="stSidebar"] button[kind="secondary"] {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  width: 100% !important;
+  box-sizing: border-box;
+  cursor: pointer;
+  font-weight: 400;
+  font-size: 0.875rem;
+  padding: 8px 16px;
+  gap: 8px;
+  transition: background 0.12s ease, border-left 0.12s ease;
+  border-left: 3px solid transparent;
+  background: transparent !important;
+  text-align: left !important;
+}
+
+/* Inner div layout */
+section[data-testid="stSidebar"] button[kind="primary"] > div,
+section[data-testid="stSidebar"] button[kind="secondary"] > div {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 8px;
+  width: 100%;
+}
+
+/* ACTIVE — left border indigo + subtle bg */
+section[data-testid="stSidebar"] button[kind="primary"] {
+  background: var(--dx-nav-active-bg) !important;
+  color: var(--dx-text-primary) !important;
+  border-left: 3px solid var(--dx-indigo) !important;
+  font-weight: 500 !important;
+}
+
+/* INACTIVE — transparent, no border */
+section[data-testid="stSidebar"] button[kind="secondary"] {
+  background: transparent !important;
+  color: var(--dx-text-secondary) !important;
+  border-left: 3px solid transparent !important;
+}
+section[data-testid="stSidebar"] button[kind="secondary"]:hover {
+  background: rgba(255,255,255,0.06) !important;
+}
+
+/* ── Nav block gap (scoped via .nav-block-marker) ── */
+div[data-testid="stVerticalBlock"]:has(.nav-block-marker) {
+  gap: 0.6rem !important;
+  row-gap: 0.6rem !important;
+}
+
+/* Hide nav-block-marker — it's only a CSS anchor for :has() */
+.nav-block-marker { display: none !important; height: 0 !important; min-height: 0 !important; margin: 0 !important; padding: 0 !important; overflow: hidden; }
+
+
+
 
 /* Sidebar Brand */
 .sidebar-brand {
@@ -131,7 +237,11 @@ section[data-testid="stSidebar"] > div {
   display: flex;
   align-items: center;
   gap: 12px;
+  margin-top: 20px;
   margin-bottom: 12px;
+  padding: 12px 14px 8px;
+  border-radius: 12px;
+  background: var(--dx-card-bg);
 }
 .user-avatar {
   width: 40px;
@@ -181,85 +291,12 @@ section[data-testid="stSidebar"] h3 {
   margin-bottom: 0.5rem !important;
 }
 
-/* ── NAV RADIO (styled as sidebar nav items) ─────────────── */
-section[data-testid="stSidebar"] div[role="radiogroup"] {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  border: none;
-  background: transparent;
-}
-
-section[data-testid="stSidebar"] label[data-baseweb="radio"] {
-  display: flex;
-  align-items: center;
-  padding: 10px 16px 10px 12px;
-  border-radius: 0 var(--dx-radius-s) var(--dx-radius-s) 0;
-  margin: 0;
-  margin-left: -16px !important;
-  width: calc(100% + 16px);
-  transition: all 0.15s ease;
-  cursor: pointer;
-  border-left: 3px solid transparent;
-}
-
-/* Hide the native radio circle */
-section[data-testid="stSidebar"] label[data-baseweb="radio"] > div:first-child {
-  display: none !important;
-}
-
-/* Radio text = the nav label */
-section[data-testid="stSidebar"] label[data-baseweb="radio"] span {
-  font-size: 0.875rem !important;
-  font-weight: 400 !important;
-  color: var(--dx-text-secondary) !important;
-  padding: 0 !important;
-  line-height: 1.5;
-}
-
-/* Hover state */
-section[data-testid="stSidebar"] label[data-baseweb="radio"]:hover {
-  background: var(--dx-nav-hover-bg);
-}
-section[data-testid="stSidebar"] label[data-baseweb="radio"]:hover span {
-  color: var(--dx-text-primary) !important;
-}
-
-/* ACTIVE STATE — left indigo accent + bg */
-section[data-testid="stSidebar"] label[data-baseweb="radio"]:has(
-  input:checked
-) {
-  background: var(--dx-nav-active-bg) !important;
-  border-left: var(--dx-nav-active-border);
-}
-section[data-testid="stSidebar"] label[data-baseweb="radio"]:has(
-  input:checked
-) span {
-  color: var(--dx-text-primary) !important;
-  font-weight: 500 !important;
-}
-
 /* ── Sidebar divider ─────────────────────────────────────── */
 section[data-testid="stSidebar"] hr {
   border: none !important;
   height: 1px !important;
   background: var(--dx-separator) !important;
   margin: 1rem 0 !important;
-}
-
-/* ── Sidebar Progress Bar ────────────────────────────────── */
-section[data-testid="stSidebar"] .stProgress > div {
-  background: rgba(148, 163, 184, 0.15) !important;
-  height: 4px !important;
-  border-radius: 100px !important;
-}
-section[data-testid="stSidebar"] .stProgress > div > div {
-  background: var(--dx-indigo) !important;
-  border-radius: 100px !important;
-}
-section[data-testid="stSidebar"] .stProgress label {
-  color: var(--dx-text-tertiary) !important;
-  font-size: 0.75rem !important;
 }
 
 /* Sidebar toggle label */
@@ -289,6 +326,65 @@ section[data-testid="stSidebar"] label[data-baseweb="toggle"] span {
   background: var(--dx-bg-tertiary);
   color: var(--dx-indigo);
 }
+/* Deploy button and hamburger kept visible — user requested */
+
+
+
+
+/* ── Top Ranking Lists (Resumo) ──────────────────────────── */
+.top-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.top-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: var(--dx-card-bg);
+  border-radius: var(--dx-radius-m, 10px);
+  border: 1px solid var(--dx-separator);
+  transition: background 0.15s ease;
+}
+.top-item:hover {
+  background: var(--dx-nav-hover-bg);
+}
+.top-rank {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--dx-indigo);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+.top-name {
+  flex: 1;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--dx-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.top-value {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--dx-text-secondary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* ── Progress section (Resumo) ──────────────────────────── */
+/* Remove XP-related section clutter, keep it compact */
+section[data-testid="stSidebar"] .stProgress {
+  margin: 0 !important;
+}
 
 /* ── KPI Metric Cards ────────────────────────────────────── */
 /* Custom metric-card component via st.html() — inline styles no componente,
@@ -298,13 +394,21 @@ section[data-testid="stSidebar"] label[data-baseweb="toggle"] span {
   box-shadow: 0 0 0 1px var(--dx-indigo-glow), 0 2px 8px rgba(0, 0, 0, 0.3) !important;
 }
 
+/* Positive delta — teal accent for health/supplement niche */
+.metric-card .delta-positive {
+  color: var(--dx-teal) !important;
+}
+.delta-positive {
+  color: var(--dx-teal) !important;
+}
+
 /* ── Card Markers ───────────────────────────────────────── ── */
 
 /* Evolution card — stHorizontalBlock containing the chart columns */
 [data-testid="stHorizontalBlock"]:has(.scrollable-chart-marker) {
-  background: #1E293B !important;
-  border: 1px solid #334155 !important;
-  border-radius: 12px !important;
+  background: var(--dx-card-bg) !important;
+  border: 1px solid var(--dx-separator) !important;
+  border-radius: var(--dx-radius-m) !important;
   padding: 1.5rem !important;
   margin-bottom: 0.5rem !important;
 }
@@ -435,8 +539,16 @@ div[data-testid="stColumn"]:nth-of-type(2) [data-testid="stContainer"]:nth-of-ty
   padding: 8px 20px !important;
   border: none !important;
   transition: all 0.15s ease;
+}
+/* justify-content: flex-start scoped to sidebar nav buttons */
+section[data-testid="stSidebar"] button[kind="secondary"],
+section[data-testid="stSidebar"] button[kind="primary"] {
   justify-content: flex-start !important;
   text-align: left !important;
+}
+section[data-testid="stSidebar"] button[kind="secondary"] > div,
+section[data-testid="stSidebar"] button[kind="primary"] > div {
+  justify-content: flex-start !important;
 }
 
 .stButton > button[kind="primary"],
@@ -511,7 +623,7 @@ div[data-testid="stExpander"] {
   background: var(--dx-bg-secondary);
   border: 1px solid var(--dx-separator);
   border-radius: var(--dx-radius-m);
-  overflow: hidden;
+  overflow: visible;
 }
 div[data-testid="stExpander"] > details > summary {
   font-weight: 600;
@@ -559,7 +671,6 @@ hr {
 div[data-testid="stDataFrame"] {
   border-radius: var(--dx-radius-m);
   border: 1px solid var(--dx-separator);
-  overflow: hidden;
 }
 div[data-testid="stDataFrame"] thead tr th {
   background: var(--dx-bg-secondary) !important;
@@ -635,7 +746,6 @@ div[data-baseweb="tag"] {
 }
 
 /* ── Small visual fixes ──────────────────────────────────── */
-.st-emotion-cache-1gulkj5 { display: none; }
 
 div[data-testid="stImage"] img {
   border-radius: var(--dx-radius-s);
@@ -661,3 +771,5 @@ div[data-testid="stImage"] img {
 [data-baseweb="popover"] * {
   font-size: 0.8rem !important;
 }
+
+

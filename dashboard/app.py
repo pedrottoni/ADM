@@ -20,6 +20,7 @@ from agents.finance_agent import FinanceAgent
 from agents.product_agent import ProductAgent
 from agents.ads_agent import AdsAgent
 from agents.customer_agent import CustomerAgent
+from core.tasks.engine import TaskEngine
 from dashboard.tabs import TAB_RENDERERS
 
 # ── Page Config ─────────────────────────────────────────────────────
@@ -83,11 +84,12 @@ TAB_LABELS = [
     "Atendimento",
     "Meus Anúncios",
     "Concorrência",
+    "Tarefas",
     "Configurações",
 ]
 TAB_KEYS = [
     "resumo", "financeiro", "marketing", "atendimento",
-    "anuncios", "concorrencia", "configuracoes",
+    "anuncios", "concorrencia", "tarefas", "configuracoes",
 ]
 
 # Ensure active_tab is initialized (keep existing selection across reruns)
@@ -119,20 +121,23 @@ def render_sidebar(user):
             "atendimento":   ":material/support_agent:",
             "anuncios":      ":material/inventory_2:",
             "concorrencia":  ":material/search:",
+            "tarefas":       ":material/assignment:",
             "configuracoes": ":material/settings:",
         }
-        for _key in TAB_KEYS:
-            _active = st.session_state.active_tab == _key
-            _label = TAB_LABELS[TAB_KEYS.index(_key)]
-            if st.button(
-                _label,
-                key=f"nav_{_key}",
-                icon=_NAV_ICONS.get(_key, ":material/help:"),
-                use_container_width=True,
-                type="primary" if _active else "secondary",
-            ) and not _active:
-                st.session_state.active_tab = _key
-                st.rerun()
+        with st.container(key="nav_container"):
+            st.markdown('<div class="nav-block-marker"></div>', unsafe_allow_html=True)
+            for _key in TAB_KEYS:
+                _active = st.session_state.active_tab == _key
+                _label = TAB_LABELS[TAB_KEYS.index(_key)]
+                if st.button(
+                    _label,
+                    key=f"nav_{_key}",
+                    icon=_NAV_ICONS.get(_key, ":material/help:"),
+                    use_container_width=True,
+                    type="primary" if _active else "secondary",
+                ) and not _active:
+                    st.session_state.active_tab = _key
+                    st.rerun()
         selected = TAB_LABELS[TAB_KEYS.index(st.session_state.active_tab)]
 
         new_idx = TAB_LABELS.index(selected)
@@ -141,18 +146,7 @@ def render_sidebar(user):
             st.session_state.active_tab = new_key
             st.rerun()
 
-        st.divider()
-
-        # ── LLM Toggle ──
-        llm_on = st.toggle(
-            "IA Ativa",
-            value=llm_client.enabled,
-            help="Ativar ou desativar a conexão com a IA",
-        )
-        if llm_on != llm_client.enabled:
-            llm_client.set_enabled(llm_on)
-            st.rerun()
-
+        # ── Divider before profile ──
         st.divider()
 
         # ── User Profile ──
@@ -167,24 +161,49 @@ def render_sidebar(user):
             unsafe_allow_html=True,
         )
 
-        xp_progress = (user.xp % 100) / 100 if user.xp else 0
-        st.progress(min(xp_progress, 1.0), text=f"XP: {user.xp}")
+        # Show pending task count in sidebar
+        _session = next(get_session())
+        _pending_count = TaskEngine.count_pending(_session, user.id)
+        _session.close()
 
-        st.markdown(
-            '<div class="sidebar-achievements">'
-            '<span class="achievement-badge"><span class="material-symbols-rounded">emoji_events</span> Fundador</span>'
-            '</div>',
-            unsafe_allow_html=True,
+        if _pending_count > 0:
+            st.markdown(
+                f'<div style="display:flex;align-items:center;gap:8px;'
+                f'    padding:8px 12px;margin:8px 0;border-radius:12px;'
+                f'    background:rgba(129,140,248,0.1);'
+                f'    border:1px solid rgba(129,140,248,0.2);">'
+                f'  <span class="material-symbols-rounded" style="color:#818CF8;font-size:20px;">assignment</span>'
+                f'  <div>'
+                f'    <div style="font-size:13px;font-weight:600;line-height:1.3;">{_pending_count} tarefa{"s" if _pending_count != 1 else ""} pendente{"s" if _pending_count != 1 else ""}</div>'
+                f'    <div style="font-size:11px;color:var(--dx-muted);">Clique na aba Tarefas</div>'
+                f'  </div>'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
+        else:
+            st.markdown(
+                "<div style='padding:8px 12px;margin:8px 0;border-radius:12px;"
+                "background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.2);"
+                "font-size:13px;color:var(--dx-fg);'"
+                ">:material/check_circle: Tudo em dia</div>",
+                unsafe_allow_html=True,
+            )
+
+        # Remove XP/level — replaced by task count above
+        # Level shown inline in the profile line
+        st.caption(f"Nível {user.level} | {user.xp} XP")
+
+        # ── IA Toggle ──
+        st.divider()
+        llm_on = st.toggle(
+            "🤖 IA Ativa",
+            value=llm_client.enabled,
+            help="Ativar ou desativar a assistente de IA",
+            label_visibility="visible",
         )
-
-        # ── Bottom CTA ──
-        st.markdown(
-            '<div class="sidebar-footer">'
-            '  <a href="#" class="sidebar-cta">ADM v1.0</a>'
-            '</div>',
-            unsafe_allow_html=True,
-        )
-
+        if llm_on != llm_client.enabled:
+            llm_client.set_enabled(llm_on)
+            st.rerun()
 
 # ── Main ────────────────────────────────────────────────────────────
 def main():
@@ -221,17 +240,23 @@ def main():
         "atendimento":   "support_agent",
         "anuncios":      "inventory_2",
         "concorrencia":  "search",
+        "tarefas":       "assignment",
         "configuracoes": "settings",
     }
     active_label = TAB_LABELS[TAB_KEYS.index(st.session_state.active_tab)]
     _hdr_icon = _ICON_FOR_KEY.get(st.session_state.active_tab, "help")
+
+    # Header row — title full width
     st.markdown(f"## :material/{_hdr_icon}: {active_label}")
     st.markdown(
         '<p class="page-subtitle">'
-        'Measure your advertising ROI and report website traffic.'
+        'Monitore suas operações Shopee em tempo real.'
         '</p>',
         unsafe_allow_html=True,
     )
+
+
+
 
     # ── Content (render active tab) ──
     render_fn = TAB_RENDERERS.get(st.session_state.active_tab)
