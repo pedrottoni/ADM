@@ -433,6 +433,43 @@ section[data-testid="stSidebar"] .stProgress {
   margin: 0 !important;
 }
 
+/* ── Resumo Section Cards ──────────────────────────────── */
+/* Card markers — hidden divs that trigger :has() card styling */
+.progresso-card-marker,
+.alertas-card-marker,
+.acoes-card-marker {
+  display: none !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden;
+}
+
+/* Progresso + Missões Ativas card (left column) */
+div[data-testid="stColumn"]:has(.progresso-card-marker) {
+  background: var(--dx-card-bg);
+  border: 1px solid var(--dx-card-border);
+  border-radius: var(--dx-radius-m);
+  padding: 1.25rem;
+}
+
+/* Alertas de Estoque card (right column) */
+div[data-testid="stColumn"]:has(.alertas-card-marker) {
+  background: var(--dx-card-bg);
+  border: 1px solid var(--dx-card-border);
+  border-radius: var(--dx-radius-m);
+  padding: 1.25rem;
+}
+
+/* Ações Rápidas card (full width) */
+div[data-testid="stVerticalBlock"]:has(.acoes-card-marker) {
+  background: var(--dx-card-bg);
+  border: 1px solid var(--dx-card-border);
+  border-radius: var(--dx-radius-m);
+  padding: 1.25rem;
+}
+
 /* ── KPI Metric Cards ────────────────────────────────────── */
 /* Custom metric-card component via st.html() — inline styles no componente,
    hover rule global aqui pra clean separation */
@@ -818,5 +855,6 @@ div[data-testid="stImage"] img {
 [data-baseweb="popover"] * {
   font-size: 0.8rem !important;
 }
+
 
 

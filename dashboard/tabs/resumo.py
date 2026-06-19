@@ -93,6 +93,7 @@ def render(user, agents):
     col_bot_left, col_bot_right = st.columns([1, 1])
 
     with col_bot_left:
+        st.markdown('''<div class="progresso-card-marker"></div>''', unsafe_allow_html=True)
         st.markdown("#### :material/adjust: Progresso")
         next_level_xp = user.level * 100
         progress = min(user.xp / next_level_xp, 1.0)
@@ -115,6 +116,7 @@ def render(user, agents):
             st.info("Nenhuma missão cadastrada. Comece registrando vendas!")
 
     with col_bot_right:
+        st.markdown('''<div class="alertas-card-marker"></div>''', unsafe_allow_html=True)
         st.markdown("#### :material/warning: Alertas de Estoque")
         low_stock_items = product_agent.get_low_stock_items(user.id)
         if low_stock_items:
@@ -126,8 +128,10 @@ def render(user, agents):
     st.markdown("<div style='height:4px'></div>", unsafe_allow_html=True)
 
     # ── Ações Rápidas ──
-    st.markdown("#### :material/bolt: Ações Rápidas")
-    qa1, qa2, qa3, qa4 = st.columns(4)
+    with st.container():
+        st.markdown('''<div class="acoes-card-marker"></div>''', unsafe_allow_html=True)
+        st.markdown("#### :material/bolt: Ações Rápidas")
+        qa1, qa2, qa3, qa4 = st.columns(4)
     with qa1:
         if st.button("➕ Nova Venda", use_container_width=True, type="primary"):
             st.toast("Vá para a aba :material/payments: Financeiro > Registrar Venda")
@@ -140,3 +144,4 @@ def render(user, agents):
     with qa4:
         if st.button(":material/file_download: Importar", use_container_width=True, type="secondary"):
             st.toast("Vá para a aba :material/inventory_2: Meus Anúncios > Importar")
+
