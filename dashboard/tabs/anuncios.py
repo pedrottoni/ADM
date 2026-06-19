@@ -207,7 +207,7 @@ def render(user, agents):
             st.info("Nenhum anúncio mapeado.")
 
     with sub_tab_estoque:
-        st.markdown("#### :material/store: Inventário de Potes")
+        st.markdown('<div class="card-title"><span class="material-symbols-rounded">store</span> Inventário de Potes</div>', unsafe_allow_html=True)
 
         # Filtro de período com calendário (dia 15 a 14 do mês seguinte)
         from datetime import datetime, timedelta
@@ -339,7 +339,7 @@ def render(user, agents):
                 st.success("Adicionado!"); st.rerun()
 
     with sub_tab_calc:
-        st.markdown("#### :material/calculate: Simulador de Precificação e Lucro")
+        st.markdown('<div class="card-title"><span class="material-symbols-rounded">calculate</span> Simulador de Precificação e Lucro</div>', unsafe_allow_html=True)
         st.info("Utilize esta calculadora para planejar seus preços antes de publicar os anúncios, analisando todas as taxas da Shopee, impostos e custos de fornecedor.")
 
         col_in, col_out = st.columns([1, 1], gap="large")
@@ -461,7 +461,7 @@ def render(user, agents):
 
     # 2. ADICIONAR ANÚNCIO (The core engine)
     with st.container(border=True):
-        st.markdown("#### :material/add: Adicionar Novo Anúncio com IA")
+        st.markdown('<div class="card-title"><span class="material-symbols-rounded">add</span> Adicionar Novo Anúncio com IA</div>', unsafe_allow_html=True)
 
         method = st.radio("Método de Criação:", ["Manual (Texto)", "Imagem (Vision + IA Search)"], horizontal=True)
 

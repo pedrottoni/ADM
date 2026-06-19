@@ -380,7 +380,7 @@ def render(user, agents):
                             res = finance_agent.reset_inventory(user.id)
                             if res["success"]: st.toast(res["message"]); st.rerun()
     with sub_tab_venda:
-        st.markdown("#### :material/payments: Registrar Venda Manual")
+        st.markdown('<div class="card-title"><span class="material-symbols-rounded">payments</span> Registrar Venda Manual</div>', unsafe_allow_html=True)
         st.info("Utilize este formulário para registrar vendas que não foram importadas automaticamente. O estoque será abatido proporcionalmente.")
         # Produtos disponíveis
         if products_list:
@@ -414,7 +414,7 @@ def render(user, agents):
         else:
             st.warning("Nenhum anúncio encontrado. Cadastre seus anúncios na aba 'Gestão de Anúncios'.")
     with sub_tab_gasto:
-        st.markdown("#### :material/receipt_long: Registro de Despesas")
+        st.markdown('<div class="card-title"><span class="material-symbols-rounded">receipt_long</span> Registro de Despesas</div>', unsafe_allow_html=True)
         with st.form("expense_form_new"):
             d_date = st.date_input("Data da Despesa")
             d_desc = st.text_input("Descrição", placeholder="Ex: Google Ads, Aluguel, Embalagens")
@@ -430,7 +430,7 @@ def render(user, agents):
                     st.success("Gasto registrado com sucesso!"); st.rerun()
                 else: st.error(res["message"])
     with sub_tab_upload:
-        st.markdown("#### :material/folder_open: Importar Planilha de Vendas")
+        st.markdown('<div class="card-title"><span class="material-symbols-rounded">folder_open</span> Importar Planilha de Vendas</div>', unsafe_allow_html=True)
         st.markdown("Suba o arquivo XML/XLSX da Shopee ou um CSV próprio. Nossa IA irá processar os dados e vincular aos anúncios.")
         uploaded_file = st.file_uploader("Arraste o arquivo aqui", type=["csv", "xlsx"], key="income_upload_new")
         if uploaded_file and "upload_preview" not in st.session_state:
@@ -458,7 +458,7 @@ def render(user, agents):
     # Resolução de Itens não Encontrados (Persistent ao final da aba Financeiro)
     if "unmatched_products" in st.session_state and st.session_state["unmatched_products"]:
         st.divider()
-        st.markdown("#### :material/warning: Vendas não Vinculadas")
+        st.markdown('<div class="card-title"><span class="material-symbols-rounded">warning</span> Vendas não Vinculadas</div>', unsafe_allow_html=True)
         st.caption("Os itens abaixo foram registrados no financeiro, mas não encontramos anúncios correspondentes para abater o estoque.")
         unmatched = st.session_state["unmatched_products"]
         for idx, item in enumerate(unmatched):

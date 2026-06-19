@@ -63,7 +63,7 @@ def render_competitor_page(user_id: int):
         st.markdown(f"### {badge_colors.get(badge['color'], ':material/help:')} {badge['label']}")
 
         st.divider()
-        st.markdown("#### :material/analytics: Tabela Comparativa")
+        st.markdown('<div class="card-title"><span class="material-symbols-rounded">analytics</span> Tabela Comparativa</div>', unsafe_allow_html=True)
 
         product_obj = next((p for p in products if p.id == selected_product_id), None)
         our_price = product_obj.price if product_obj else 0
@@ -102,7 +102,7 @@ def render_competitor_page(user_id: int):
             st.dataframe(df, use_container_width=True, hide_index=True)
 
         st.divider()
-        st.markdown("#### :material/check_circle: Confirmar Matches")
+        st.markdown('<div class="card-title"><span class="material-symbols-rounded">check_circle</span> Confirmar Matches</div>', unsafe_allow_html=True)
 
         unconfirmed = [d for d in existing_data if not d["is_confirmed_match"]]
         if unconfirmed:

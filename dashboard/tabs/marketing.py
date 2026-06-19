@@ -57,7 +57,7 @@ def render(user, agents):
                 st.warning("Preencha pelo menos Gasto e Impressões para calcular!")
 
     with col_tool3:
-        st.markdown("#### :material/palette: Gerador de Prompts (IA)")
+        st.markdown('<div class="card-title"><span class="material-symbols-rounded">palette</span> Gerador de Prompts (IA)</div>', unsafe_allow_html=True)
         st.caption("Gere comandos para criar fotos ultra-realistas no Midjourney/DALL-E.")
 
         # Select product

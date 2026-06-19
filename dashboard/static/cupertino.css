@@ -331,16 +331,33 @@ section[data-testid="stSidebar"] label[data-baseweb="toggle"] span {
 
 
 
-/* ── Top Rankings Card (Resumo) ──────────────────────────── */
-.top-rankings-card {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0;
+/* ── Unified Card System ───────────────────────────────────────── */
+/* Base card class — use everywhere for consistent styling */
+.card {
   background: var(--dx-card-bg);
   border: 1px solid var(--dx-card-border);
   border-radius: var(--dx-radius-m);
   padding: 1.25rem;
   margin-bottom: 0.5rem;
+}
+
+/* Card title — unified heading for all cards */
+.card-title {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--dx-text-secondary);
+  margin-bottom: 0.75rem;
+  letter-spacing: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+/* ── Top Rankings Card ─────────────────────────────────────────────────── */
+.top-rankings-card {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
 }
 .top-rankings-col {
   padding: 0 1rem;
@@ -351,16 +368,6 @@ section[data-testid="stSidebar"] label[data-baseweb="toggle"] span {
 }
 .top-rankings-col:last-child {
   padding-right: 0;
-}
-.mc-label {
-  font-size: 0.8rem !important;
-  font-weight: 500 !important;
-  color: var(--dx-text-secondary) !important;
-  margin-bottom: 0.75rem !important;
-  letter-spacing: 0;
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
 }
 .top-list {
   display: flex;
@@ -427,14 +434,29 @@ section[data-testid="stSidebar"] label[data-baseweb="toggle"] span {
   padding: 8px 0;
 }
 
-/* ── Progress section (Resumo) ──────────────────────────── */
-/* Remove XP-related section clutter, keep it compact */
+/* ── Progress section (Resumo) ─────────────────────────────────────────────────── */
 section[data-testid="stSidebar"] .stProgress {
   margin: 0 !important;
 }
 
-/* ── Resumo Section Cards ──────────────────────────────── */
-/* Card markers — hidden divs that trigger :has() card styling */
+/* ── Section Cards via :has() ────────────────────────────────────────────────── */
+/* Progresso + Alertas: card on the horizontal block */
+[data-testid="stHorizontalBlock"]:has(.progresso-card-marker) {
+  background: var(--dx-card-bg);
+  border: 1px solid var(--dx-card-border);
+  border-radius: var(--dx-radius-m);
+  padding: 1.25rem;
+}
+
+/* Ações Rápidas: card on the vertical block */
+div[data-testid="stVerticalBlock"]:has(.acoes-card-marker) {
+  background: var(--dx-card-bg);
+  border: 1px solid var(--dx-card-border);
+  border-radius: var(--dx-radius-m);
+  padding: 1.25rem;
+}
+
+/* Card markers — hidden divs */
 .progresso-card-marker,
 .alertas-card-marker,
 .acoes-card-marker {
@@ -446,30 +468,7 @@ section[data-testid="stSidebar"] .stProgress {
   overflow: hidden;
 }
 
-/* Progresso + Missões Ativas card (left column) */
-div[data-testid="stColumn"]:has(.progresso-card-marker) {
-  background: var(--dx-card-bg);
-  border: 1px solid var(--dx-card-border);
-  border-radius: var(--dx-radius-m);
-  padding: 1.25rem;
-}
-
-/* Alertas de Estoque card (right column) */
-div[data-testid="stColumn"]:has(.alertas-card-marker) {
-  background: var(--dx-card-bg);
-  border: 1px solid var(--dx-card-border);
-  border-radius: var(--dx-radius-m);
-  padding: 1.25rem;
-}
-
-/* Ações Rápidas card (full width) */
-div[data-testid="stVerticalBlock"]:has(.acoes-card-marker) {
-  background: var(--dx-card-bg);
-  border: 1px solid var(--dx-card-border);
-  border-radius: var(--dx-radius-m);
-  padding: 1.25rem;
-}
-
+/* ── KPI Metric Cards ─────────────────────────────────────────────────── */
 /* ── KPI Metric Cards ────────────────────────────────────── */
 /* Custom metric-card component via st.html() — inline styles no componente,
    hover rule global aqui pra clean separation */

@@ -76,11 +76,11 @@ def render(user, agents):
     st.markdown(
         f'<div class="top-rankings-card">'
         f'  <div class="top-rankings-col">'
-        f'    <div class="mc-label"><span class="material-symbols-rounded">trending_up</span> Top Vendas</div>'
+        f'    <div class="card-title"><span class="material-symbols-rounded">trending_up</span> Top Vendas</div>'
         f'    <div class="top-list">{vendas_html}</div>'
         f'  </div>'
         f'  <div class="top-rankings-col">'
-        f'    <div class="mc-label"><span class="material-symbols-rounded">inventory_2</span> Top Produtos</div>'
+        f'    <div class="card-title"><span class="material-symbols-rounded">inventory_2</span> Top Produtos</div>'
         f'    <div class="top-list">{produtos_html}</div>'
         f'  </div>'
         f'</div>',
@@ -94,16 +94,17 @@ def render(user, agents):
 
     with col_bot_left:
         st.markdown('''<div class="progresso-card-marker"></div>''', unsafe_allow_html=True)
-        st.markdown("#### :material/adjust: Progresso")
+        st.markdown('<div class="card-title"><span class="material-symbols-rounded">adjust</span> Progresso</div>', unsafe_allow_html=True)
         next_level_xp = user.level * 100
         progress = min(user.xp / next_level_xp, 1.0)
-        st.progress(progress, text=f"Nível {user.level} — {user.xp}/{next_level_xp} XP")
-        st.caption(f"Total de missões completadas: {len([m for m in user.missions if m.is_completed]) if user.missions else 0}")
+        completed = len([m for m in user.missions if m.is_completed]) if user.missions else 0
+        pending_count = len([m for m in user.missions if not m.is_completed]) if user.missions else 0
+        st.markdown(f'<div style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="font-size:0.98rem;color:var(--dx-text-primary);font-weight:500">N\xedvel {user.level}</span><span style="font-size:0.85rem;color:var(--dx-text-secondary)">{user.xp}/{next_level_xp} XP</span></div><div style="background:rgba(100,116,139,0.15);border-radius:100px;height:8px;overflow:hidden"><div style="background:var(--dx-indigo);width:{progress*100:.1f}%;height:100%;border-radius:100px;transition:width 0.3s ease"></div></div></div><div style="display:flex;gap:1rem;font-size:0.85rem;color:var(--dx-text-secondary)"><span><span class="material-symbols-rounded" style="font-size:1rem;vertical-align:middle">task_alt</span> {completed} realizadas</span><span><span class="material-symbols-rounded" style="font-size:1rem;vertical-align:middle">pending</span> {pending_count} pendentes</span></div>', unsafe_allow_html=True)
 
         st.markdown("<div style='height:4px'></div>", unsafe_allow_html=True)
 
         # ── Missões Ativas ──
-        st.markdown("**Missões Ativas**")
+        st.markdown('<div class="card-title"><span class="material-symbols-rounded">edit_note</span> Miss\u00f5es Ativas</div>', unsafe_allow_html=True)
         if user.missions:
             pending = [m for m in user.missions if not m.is_completed]
             if pending:
@@ -117,7 +118,7 @@ def render(user, agents):
 
     with col_bot_right:
         st.markdown('''<div class="alertas-card-marker"></div>''', unsafe_allow_html=True)
-        st.markdown("#### :material/warning: Alertas de Estoque")
+        st.markdown('<div class="card-title"><span class="material-symbols-rounded">warning</span> Alertas de Estoque</div>', unsafe_allow_html=True)
         low_stock_items = product_agent.get_low_stock_items(user.id)
         if low_stock_items:
             for item in low_stock_items:
@@ -130,7 +131,7 @@ def render(user, agents):
     # ── Ações Rápidas ──
     with st.container():
         st.markdown('''<div class="acoes-card-marker"></div>''', unsafe_allow_html=True)
-        st.markdown("#### :material/bolt: Ações Rápidas")
+        st.markdown('<div class="card-title"><span class="material-symbols-rounded">bolt</span> A\u00e7\u00f5es R\u00e1pidas</div>', unsafe_allow_html=True)
         qa1, qa2, qa3, qa4 = st.columns(4)
     with qa1:
         if st.button("➕ Nova Venda", use_container_width=True, type="primary"):
