@@ -453,24 +453,30 @@ section[data-testid="stSidebar"] .stProgress {
   padding: 1.25rem;
 }
 
-/* Progresso — individual card via :has() */
-div[data-testid="stVerticalBlock"]:has(.progresso-card-marker) {
+/* Section cards — individual card via :has() with direct-child combinator (>)
+   to avoid matching ancestor stVerticalBlocks that wrap the entire Resumo tab.
+   DOM chain: marker → ... → stElementContainer → stVerticalBlock → stColumn (or stLayoutWrapper)
+   The > ensures we only match the stVerticalBlock whose parent is stColumn/stLayoutWrapper,
+   not the outer stVerticalBlock that contains the whole tab. */
+
+/* Progresso — direct child of stColumn */
+[data-testid="stColumn"] > [data-testid="stVerticalBlock"]:has(.progresso-card-marker) {
   background: var(--dx-card-bg);
   border: 1px solid var(--dx-card-border);
   border-radius: var(--dx-radius-m);
   padding: 1.25rem;
 }
 
-/* Alertas — individual card via :has() */
-div[data-testid="stVerticalBlock"]:has(.alertas-card-marker) {
+/* Alertas — direct child of stColumn */
+[data-testid="stColumn"] > [data-testid="stVerticalBlock"]:has(.alertas-card-marker) {
   background: var(--dx-card-bg);
   border: 1px solid var(--dx-card-border);
   border-radius: var(--dx-radius-m);
   padding: 1.25rem;
 }
 
-/* Ações Rápidas — individual card via :has() */
-div[data-testid="stVerticalBlock"]:has(.acoes-card-marker) {
+/* Ações Rápidas — direct child of stLayoutWrapper (inside st.container()) */
+[data-testid="stLayoutWrapper"] > [data-testid="stVerticalBlock"]:has(.acoes-card-marker) {
   background: var(--dx-card-bg);
   border: 1px solid var(--dx-card-border);
   border-radius: var(--dx-radius-m);
