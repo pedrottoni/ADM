@@ -407,7 +407,7 @@ section[data-testid="stSidebar"] label[data-baseweb="toggle"] span {
   min-width: 0;
 }
 .top-value {
-  font-size: 0.78rem;
+  font-size: 0.98rem;
   font-weight: 600;
   color: var(--dx-text-secondary);
   font-variant-numeric: tabular-nums;
