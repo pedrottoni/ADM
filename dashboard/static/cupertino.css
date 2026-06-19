@@ -331,56 +331,82 @@ section[data-testid="stSidebar"] label[data-baseweb="toggle"] span {
 
 
 
-/* ── Top Ranking Lists (Resumo) — progress bar style ──────── */
+/* ── Top Rankings Card (Resumo) ──────────────────────────── */
+.top-rankings-card {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  background: var(--dx-card-bg);
+  border: 1px solid var(--dx-card-border);
+  border-radius: var(--dx-radius-m);
+  padding: 1.25rem;
+  margin-bottom: 0.5rem;
+}
+.top-rankings-col {
+  padding: 0 1rem;
+}
+.top-rankings-col:first-child {
+  padding-left: 0;
+  border-right: 1px solid var(--dx-separator);
+}
+.top-rankings-col:last-child {
+  padding-right: 0;
+}
+.top-rankings-col h4 {
+  font-size: 0.85rem !important;
+  font-weight: 600 !important;
+  color: var(--dx-text-primary) !important;
+  margin-bottom: 0.75rem !important;
+  letter-spacing: -0.01em;
+}
 .top-list {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 2px;
 }
 .top-item {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 6px 0;
+  padding: 5px 0;
 }
 .top-rank {
-  width: 22px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--dx-muted);
+  width: 24px;
+  height: 24px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--dx-text-tertiary);
   flex-shrink: 0;
-  text-align: right;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  background: rgba(100, 116, 139, 0.12);
+}
+.top-rank.rank-gold {
+  background: rgba(245, 158, 11, 0.18);
+  color: var(--dx-orange);
+}
+.top-rank.rank-silver {
+  background: rgba(148, 163, 184, 0.15);
+  color: var(--dx-text-secondary);
+}
+.top-rank.rank-bronze {
+  background: rgba(180, 130, 90, 0.15);
+  color: #c8956c;
 }
 .top-name {
-  width: 140px;
+  flex: 1;
   font-size: 0.82rem;
   font-weight: 500;
   color: var(--dx-text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  flex-shrink: 0;
-}
-.top-bar-track {
-  flex: 1;
-  height: 8px;
-  background: var(--dx-separator);
-  border-radius: 4px;
-  overflow: hidden;
-}
-.top-bar-fill {
-  height: 100%;
-  border-radius: 4px;
-  transition: width 0.4s ease;
-}
-.top-bar-fill.revenue {
-  background: var(--dx-indigo);
-}
-.top-bar-fill.units {
-  background: var(--dx-teal, #14b8a6);
+  min-width: 0;
 }
 .top-value {
-  width: 90px;
   font-size: 0.78rem;
   font-weight: 600;
   color: var(--dx-text-secondary);
@@ -388,6 +414,14 @@ section[data-testid="stSidebar"] label[data-baseweb="toggle"] span {
   white-space: nowrap;
   text-align: right;
   flex-shrink: 0;
+}
+.top-value-teal {
+  color: var(--dx-teal);
+}
+.top-empty {
+  font-size: 0.82rem;
+  color: var(--dx-text-tertiary);
+  padding: 8px 0;
 }
 
 /* ── Progress section (Resumo) ──────────────────────────── */

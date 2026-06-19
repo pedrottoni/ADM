@@ -31,52 +31,61 @@ def render(user, agents):
 
     st.divider()
 
-    # ── Top Vendas + Top Produtos (2 colunas, topo) ──
-    col_top_left, col_top_right = st.columns([1, 1])
+    # ── Top Vendas + Top Produtos (card único) ──
+    top_prods = finance_agent.get_top_products(user.id, limit=10)
+    top_by_potes = finance_agent.get_top_products_by_potes(user.id, limit=10)
 
-    with col_top_left:
-        st.markdown("#### :material/emoji_events: Top Vendas")
-        top_prods = finance_agent.get_top_products(user.id, limit=10)
-        if top_prods:
-            max_rev = max(p['total_revenue'] for p in top_prods) if top_prods else 1
-            st.markdown('<div class="top-list">', unsafe_allow_html=True)
-            for i, p in enumerate(top_prods, 1):
-                title = p['product_title'][:28] + "..." if len(p['product_title']) > 28 else p['product_title']
-                pct = (p['total_revenue'] / max_rev * 100) if max_rev > 0 else 0
-                st.markdown(
-                    f'<div class="top-item">'
-                    f'  <span class="top-rank">#{i}</span>'
-                    f'  <span class="top-name">{title}</span>'
-                    f'  <span class="top-bar-track"><span class="top-bar-fill revenue" style="width:{pct:.0f}%"></span></span>'
-                    f'  <span class="top-value">R$ {p["total_revenue"]:,.2f}</span>'
-                    f'</div>',
-                    unsafe_allow_html=True,
-                )
-            st.markdown("</div>", unsafe_allow_html=True)
-        else:
-            st.info("Nenhuma venda registrada ainda.")
+    # Build rank HTML
+    def _rank_class(i):
+        if i == 1:
+            return "top-rank rank-gold"
+        elif i == 2:
+            return "top-rank rank-silver"
+        elif i == 3:
+            return "top-rank rank-bronze"
+        return "top-rank"
 
-    with col_top_right:
-        st.markdown("#### :material/emoji_events: Top Produtos")
-        top_by_potes = finance_agent.get_top_products_by_potes(user.id, limit=10)
-        if top_by_potes:
-            max_potes = max(p['total_potes'] for p in top_by_potes) if top_by_potes else 1
-            st.markdown('<div class="top-list">', unsafe_allow_html=True)
-            for i, p in enumerate(top_by_potes, 1):
-                title = p['product_title'][:28] + "..." if len(p['product_title']) > 28 else p['product_title']
-                pct = (p['total_potes'] / max_potes * 100) if max_potes > 0 else 0
-                st.markdown(
-                    f'<div class="top-item">'
-                    f'  <span class="top-rank">#{i}</span>'
-                    f'  <span class="top-name">{title}</span>'
-                    f'  <span class="top-bar-track"><span class="top-bar-fill units" style="width:{pct:.0f}%"></span></span>'
-                    f'  <span class="top-value" style="color:var(--dx-teal);">{p["total_potes"]} un.</span>'
-                    f'</div>',
-                    unsafe_allow_html=True,
-                )
-            st.markdown("</div>", unsafe_allow_html=True)
-        else:
-            st.info("Nenhum produto vendido ainda.")
+    vendas_html = ""
+    if top_prods:
+        for i, p in enumerate(top_prods[:10], 1):
+            title = p['product_title'][:28] + "..." if len(p['product_title']) > 28 else p['product_title']
+            vendas_html += (
+                f'<div class="top-item">'
+                f'  <span class="{_rank_class(i)}">#{i}</span>'
+                f'  <span class="top-name">{title}</span>'
+                f'  <span class="top-value">R$ {p["total_revenue"]:,.2f}</span>'
+                f'</div>'
+            )
+    else:
+        vendas_html = '<div class="top-empty">Nenhuma venda registrada ainda.</div>'
+
+    produtos_html = ""
+    if top_by_potes:
+        for i, p in enumerate(top_by_potes[:10], 1):
+            title = p['product_title'][:28] + "..." if len(p['product_title']) > 28 else p['product_title']
+            produtos_html += (
+                f'<div class="top-item">'
+                f'  <span class="{_rank_class(i)}">#{i}</span>'
+                f'  <span class="top-name">{title}</span>'
+                f'  <span class="top-value top-value-teal">{p["total_potes"]} un.</span>'
+                f'</div>'
+            )
+    else:
+        produtos_html = '<div class="top-empty">Nenhum produto vendido ainda.</div>'
+
+    st.markdown(
+        f'<div class="top-rankings-card">'
+        f'  <div class="top-rankings-col">'
+        f'    <h4>🏆 Top Vendas</h4>'
+        f'    <div class="top-list">{vendas_html}</div>'
+        f'  </div>'
+        f'  <div class="top-rankings-col">'
+        f'    <h4>🏆 Top Produtos</h4>'
+        f'    <div class="top-list">{produtos_html}</div>'
+        f'  </div>'
+        f'</div>',
+        unsafe_allow_html=True,
+    )
 
     st.markdown("<div style='height:4px'></div>", unsafe_allow_html=True)
 
